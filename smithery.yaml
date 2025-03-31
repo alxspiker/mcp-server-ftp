@@ -1,0 +1,54 @@
+# Smithery configuration file: https://smithery.ai/docs/config#smitheryyaml
+
+startCommand:
+  type: stdio
+  configSchema:
+    # JSON Schema defining the configuration options for the MCP.
+    type: object
+    required:
+      - ftpHost
+      - ftpPort
+      - ftpUser
+      - ftpPassword
+      - ftpSecure
+    properties:
+      ftpHost:
+        type: string
+        default: localhost
+        description: FTP server hostname or IP address
+      ftpPort:
+        type: number
+        default: 21
+        description: FTP server port
+      ftpUser:
+        type: string
+        default: anonymous
+        description: FTP username
+      ftpPassword:
+        type: string
+        default: ""
+        description: FTP password
+      ftpSecure:
+        type: boolean
+        default: false
+        description: Use secure FTP (FTPS)
+  commandFunction:
+    # A JS function that produces the CLI command based on the given config to start the MCP on stdio.
+    |-
+    (config) => ({
+      command: 'node',
+      args: ['build/index.js'],
+      env: {
+        FTP_HOST: config.ftpHost,
+        FTP_PORT: String(config.ftpPort),
+        FTP_USER: config.ftpUser,
+        FTP_PASSWORD: config.ftpPassword,
+        FTP_SECURE: String(config.ftpSecure)
+      }
+    })
+  exampleConfig:
+    ftpHost: ftp.example.com
+    ftpPort: 21
+    ftpUser: your-username
+    ftpPassword: your-password
+    ftpSecure: false
