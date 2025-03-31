@@ -12,6 +12,8 @@ This Model Context Protocol (MCP) server provides tools for interacting with FTP
 
 ## Installation
 
+Install with smithery: https://smithery.ai/server/@alxspiker/Windows-Command-Line-MCP-Server
+
 ### Prerequisites
 
 - Node.js 16 or higher
