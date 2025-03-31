@@ -1,5 +1,7 @@
 # MCP Server for FTP Access
 
+[![smithery badge](https://smithery.ai/badge/@alxspiker/mcp-server-ftp)](https://smithery.ai/server/@alxspiker/mcp-server-ftp)
+
 This Model Context Protocol (MCP) server provides tools for interacting with FTP servers. It allows Claude.app to list directories, download and upload files, create directories, and delete files/directories on FTP servers.
 
 ## Features
@@ -12,7 +14,13 @@ This Model Context Protocol (MCP) server provides tools for interacting with FTP
 
 ## Installation
 
-Install with smithery: https://smithery.ai/server/@alxspiker/mcp-server-ftp
+### Installing via Smithery
+
+To install mcp-server-ftp for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@alxspiker/mcp-server-ftp):
+
+```bash
+npx -y @smithery/cli install @alxspiker/mcp-server-ftp --client claude
+```
 
 ### Prerequisites
 
