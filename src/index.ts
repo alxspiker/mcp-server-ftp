@@ -13,6 +13,14 @@ const ftpConfig: FtpConfig = {
   secure: process.env.FTP_SECURE?.toLowerCase() === "true"
 };
 
+// Root path prefix (e.g., "/www" to make all paths relative to /www)
+const ftpRoot = (process.env.FTP_ROOT || "").replace(/\/+$/, "");
+
+function resolvePath(remotePath: string): string {
+  if (!ftpRoot) return remotePath;
+  return ftpRoot + (remotePath.startsWith("/") ? remotePath : "/" + remotePath);
+}
+
 // Initialize FTP client
 const ftpClient = new FtpClient(ftpConfig);
 
@@ -31,7 +39,7 @@ server.tool(
   },
   async ({ remotePath }) => {
     try {
-      const listing = await ftpClient.listDirectory(remotePath);
+      const listing = await ftpClient.listDirectory(resolvePath(remotePath));
       
       // Format the output
       const formatted = listing.map((item) => 
@@ -71,7 +79,7 @@ server.tool(
   },
   async ({ remotePath }) => {
     try {
-      const { content } = await ftpClient.downloadFile(remotePath);
+      const { content } = await ftpClient.downloadFile(resolvePath(remotePath));
       
       return {
         content: [
@@ -105,7 +113,7 @@ server.tool(
   },
   async ({ remotePath, content }) => {
     try {
-      await ftpClient.uploadFile(remotePath, content);
+      await ftpClient.uploadFile(resolvePath(remotePath), content);
       
       return {
         content: [
@@ -138,7 +146,7 @@ server.tool(
   },
   async ({ remotePath }) => {
     try {
-      await ftpClient.createDirectory(remotePath);
+      await ftpClient.createDirectory(resolvePath(remotePath));
       
       return {
         content: [
@@ -171,7 +179,7 @@ server.tool(
   },
   async ({ remotePath }) => {
     try {
-      await ftpClient.deleteFile(remotePath);
+      await ftpClient.deleteFile(resolvePath(remotePath));
       
       return {
         content: [
@@ -204,7 +212,7 @@ server.tool(
   },
   async ({ remotePath }) => {
     try {
-      await ftpClient.deleteDirectory(remotePath);
+      await ftpClient.deleteDirectory(resolvePath(remotePath));
       
       return {
         content: [
