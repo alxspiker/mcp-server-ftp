@@ -126,7 +126,7 @@ If you encounter build issues on Windows:
 | `FTP_PROTOCOL` | Protocol to use: `ftp` or `sftp` | ftp |
 | `FTP_PRIVATE_KEY_PATH` | Path to SSH private key for SFTP (e.g. `~/.ssh/id_ed25519`) | (auto-detect) |
 | `FTP_PASSPHRASE` | Passphrase for the SSH private key (supports encryption) | (empty string) |
-| `FTP_ENCRYPTION_KEY` | 64-character hex AES-256 key for decrypting credentials | (disabled) |
+| `FTP_ENCRYPTION_KEY` | 64-character hex AES-256 key for decrypting credentials — **do not put this in your MCP config file** (see [Credential Encryption](#credential-encryption)) | (disabled) |
 
 ## SSH / SFTP Support
 
@@ -177,6 +177,8 @@ The server looks for a private key in this order:
 
 Storing plaintext passwords in your Claude config file is a security risk. The server supports AES-256-GCM encryption for `FTP_USER` and `FTP_PASSWORD` so the config only ever contains ciphertext.
 
+`FTP_ENCRYPTION_KEY` is the master key that decrypts those values. It **must not** be stored in the same config file as the encrypted credentials — if an attacker can see the config they would have both the ciphertext and the key. Instead, store the key in the **OS keychain** or set it in the **real process environment** (e.g. your shell profile), both of which are described below.
+
 ### 1. Generate an encryption key
 
 ```bash
@@ -185,18 +187,47 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
 Keep this key secret — treat it like a master password.
 
-### 2. Encrypt a credential value
+### 2. Store the key securely
+
+#### Option A — OS keychain (recommended)
+
+The server uses [`keytar`](https://github.com/atom/node-keytar) to read from the native OS keychain (macOS Keychain, Windows Credential Manager, Linux Secret Service). Install it as an optional dependency and run the `store-key` helper once:
+
+```bash
+npm install keytar   # one-time, requires native build tools
+npm run build
+npm run store-key -- <your-64-char-hex-key>
+```
+
+From that point on the server loads the key at start-up automatically — no `FTP_ENCRYPTION_KEY` entry is needed in your MCP config.
+
+> **Linux prerequisite:** `libsecret` must be installed (`sudo apt install libsecret-1-dev` on Debian/Ubuntu).
+
+#### Option B — real process environment
+
+Set `FTP_ENCRYPTION_KEY` in your shell profile (e.g. `~/.bashrc`, `~/.zshrc`, or as a Windows system environment variable) so it is present in the real OS environment but **not** in the Claude Desktop config file:
+
+```bash
+# ~/.bashrc or ~/.zshrc
+export FTP_ENCRYPTION_KEY=<your-64-char-hex-key>
+```
+
+Restart your shell and then restart Claude Desktop so it inherits the variable.
+
+### 3. Encrypt a credential value
+
+Once the key is available (via keychain or environment), encrypt each credential:
 
 ```bash
 npm run build
-FTP_ENCRYPTION_KEY=<your-64-char-hex-key> npm run encrypt-env -- <plaintext-value>
+npm run encrypt-env -- <plaintext-value>
 ```
 
 The output is a self-contained encrypted string in the format `enc:<iv_hex>:<tag_hex>:<ciphertext_hex>`.
 
-### 3. Use the encrypted values in your config
+### 4. Use the encrypted values in your config
 
-Set `FTP_ENCRYPTION_KEY` alongside the encrypted credentials. Values that do not start with `enc:` are treated as plaintext, so you can encrypt selectively.
+Because the key is stored in the OS keychain or the real environment, **omit `FTP_ENCRYPTION_KEY` from the config file entirely**. Values that do not start with `enc:` are treated as plaintext, so you can encrypt selectively.
 
 ```json
 {
@@ -209,13 +240,14 @@ Set `FTP_ENCRYPTION_KEY` alongside the encrypted credentials. Values that do not
         "FTP_PORT": "21",
         "FTP_USER": "enc:aabbcc...:ddeeff...:112233...",
         "FTP_PASSWORD": "enc:aabbcc...:ddeeff...:112233...",
-        "FTP_SECURE": "false",
-        "FTP_ENCRYPTION_KEY": "<your-64-char-hex-key>"
+        "FTP_SECURE": "false"
       }
     }
   }
 }
 ```
+
+Notice there is no `FTP_ENCRYPTION_KEY` in the `env` block — the server retrieves it from the OS keychain (or real process environment) at start-up.
 
 ## Usage
 
@@ -243,6 +275,7 @@ After configuring and restarting Claude for Desktop, you can use natural languag
 
 - Use the [Credential Encryption](#credential-encryption) feature to avoid storing plaintext passwords in your config file.
 - Prefer SFTP (`FTP_PROTOCOL=sftp`) over plain FTP or FTPS where possible — it uses SSH and does not require certificate management.
+- Store `FTP_ENCRYPTION_KEY` in the **OS keychain** (`npm run store-key`) or your **real process environment** — never in the same config file as the encrypted credentials.
 - Consider using FTPS (secure FTP) by setting `FTP_SECURE=true` if your server supports it but SFTP is unavailable.
 - The server creates temporary files for uploads and downloads in your system's temp directory.
 

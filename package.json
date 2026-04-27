@@ -12,7 +12,8 @@
     "start": "node build/index.js",
     "dev": "npm run build && npm start",
     "prepublishOnly": "npm run build",
-    "encrypt-env": "node -e \"const {encrypt}=await import('./build/crypto.js');const plaintext=process.argv[2];if(!plaintext){console.error('Usage: npm run encrypt-env -- <plaintext>');process.exit(1);}console.log(encrypt(plaintext))\" --input-type=module"
+    "encrypt-env": "node --input-type=module -e \"const {loadEncryptionKey}=await import('./build/keychain.js');await loadEncryptionKey();const {encrypt}=await import('./build/crypto.js');const plaintext=process.argv[2];if(!plaintext){console.error('Usage: npm run encrypt-env -- <plaintext>');process.exit(1);}console.log(encrypt(plaintext));\"",
+    "store-key": "node --input-type=module -e \"const {storeEncryptionKey}=await import('./build/keychain.js');const key=process.argv[2];if(!key){console.error('Usage: npm run store-key -- <64-char-hex-key>');process.exit(1);}await storeEncryptionKey(key);console.log('Encryption key stored in OS keychain.');\""
   },
   "keywords": [
     "mcp",
@@ -41,5 +42,8 @@
   ],
   "engines": {
     "node": ">=16.0.0"
+  },
+  "optionalDependencies": {
+    "keytar": "^7.9.0"
   }
 }
