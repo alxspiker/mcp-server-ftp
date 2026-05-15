@@ -1,4 +1,4 @@
-import { execSync, execFileSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
@@ -23,12 +23,30 @@ function macosGet(): string | null {
 }
 
 function macosSet(key: string): void {
-  // -U updates an existing entry; creates one if absent
-  execFileSync(
-    "security",
-    ["add-generic-password", "-U", "-s", KEYCHAIN_SERVICE, "-a", KEYCHAIN_ACCOUNT, "-w", key],
-    { stdio: "ignore" }
-  );
+  // -U updates an existing entry; creates one if absent.
+  //
+  // Security note: the key is passed as a command-line argument, which means
+  // it is briefly visible in process listings (e.g. `ps aux`) during the
+  // fraction of a second this command runs. The `security` CLI provides no
+  // stdin interface for `add-generic-password`, so there is no argv-free
+  // alternative without shelling out to Swift/AppleScript. This exposure is
+  // limited to the one-time `npm run store-key` setup step and does not
+  // affect the server's read path (`find-generic-password` outputs to stdout).
+  try {
+    execFileSync(
+      "security",
+      ["add-generic-password", "-U", "-s", KEYCHAIN_SERVICE, "-a", KEYCHAIN_ACCOUNT, "-w", key],
+      { stdio: ["ignore", "ignore", "pipe"] }
+    );
+  } catch (err: unknown) {
+    const stderr =
+      err instanceof Error && "stderr" in err
+        ? String((err as NodeJS.ErrnoException & { stderr?: Buffer }).stderr).trim()
+        : "";
+    throw new Error(
+      `Failed to write to macOS Keychain via \`security\` CLI${stderr ? `: ${stderr}` : "."}`
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------
