@@ -66,11 +66,13 @@ export async function loadEncryptionKey(): Promise<void> {
   if (process.env.FTP_ENCRYPTION_KEY) return;
 
   if (process.platform === "darwin") {
+    // Use security CLI exclusively on macOS — keytar is not attempted here to
+    // avoid native-addon architecture conflicts on Apple Silicon / Rosetta.
     const key = macosGet();
     if (key) {
       process.env.FTP_ENCRYPTION_KEY = key;
-      return;
     }
+    return;
   }
 
   try {
