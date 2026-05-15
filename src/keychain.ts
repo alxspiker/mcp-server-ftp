@@ -39,9 +39,14 @@ function macosSet(key: string): void {
       { stdio: ["ignore", "ignore", "pipe"] }
     );
   } catch (err: unknown) {
-    const stderr =
+    const raw =
       err instanceof Error && "stderr" in err
-        ? String((err as NodeJS.ErrnoException & { stderr?: Buffer }).stderr).trim()
+        ? (err as NodeJS.ErrnoException & { stderr?: Buffer | string | null }).stderr
+        : undefined;
+    const stderr = Buffer.isBuffer(raw)
+      ? raw.toString("utf8").trim()
+      : typeof raw === "string"
+        ? raw.trim()
         : "";
     throw new Error(
       `Failed to write to macOS Keychain via \`security\` CLI${stderr ? `: ${stderr}` : "."}`
