@@ -98,9 +98,10 @@ async function keytarSet(key: string): Promise<void> {
  *  2. keytar — Windows Credential Manager / Linux Secret Service
  *  3. Silent fall-through — caller can still supply via process environment
  *
- * Real keychain errors (e.g. locked keychain) are logged to stderr but do
- * not throw — the server can still start if the key is supplied via the
- * process environment.
+ * Real keychain errors (e.g. locked keychain) are logged to stderr as a
+ * warning but do not throw — the server can still start if the key is
+ * supplied via the process environment. This applies to both the macOS
+ * security CLI path and the keytar path (Windows / Linux).
  *
  * If the key is already present in process.env.FTP_ENCRYPTION_KEY it is left
  * untouched.
@@ -133,8 +134,13 @@ export async function loadEncryptionKey(): Promise<void> {
     if (key) {
       process.env.FTP_ENCRYPTION_KEY = key;
     }
-  } catch {
-    // keytar unavailable or keychain lookup failed — fall back to env var only
+  } catch (err) {
+    // keytar unavailable or keychain lookup failed — log a warning and fall
+    // back to env var so the server can still start.
+    console.error(
+      "Warning: keychain lookup via keytar failed:",
+      err instanceof Error ? err.message : String(err)
+    );
   }
 }
 
