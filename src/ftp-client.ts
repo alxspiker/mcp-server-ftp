@@ -1,7 +1,4 @@
 import SftpClient = require("ssh2-sftp-client");
-import * as fs from "fs";
-import * as path from "path";
-import * as os from "os";
 
 // Define FTP config interface
 export interface FtpConfig {
@@ -15,15 +12,9 @@ export interface FtpConfig {
 // Create SFTP client wrapper
 export class FtpClient {
   private config: FtpConfig;
-  private tempDir: string;
 
   constructor(config: FtpConfig) {
     this.config = config;
-    this.tempDir = path.join(os.tmpdir(), "mcp-ftp-temp");
-
-    if (!fs.existsSync(this.tempDir)) {
-      fs.mkdirSync(this.tempDir, { recursive: true });
-    }
   }
 
   private async withClient<T>(fn: (sftp: SftpClient) => Promise<T>): Promise<T> {
@@ -57,21 +48,17 @@ export class FtpClient {
     });
   }
 
-  async downloadFile(remotePath: string): Promise<{filePath: string, content: string}> {
+  async downloadFile(remotePath: string): Promise<string> {
     return this.withClient(async (sftp) => {
-      const tempFilePath = path.join(this.tempDir, `download-${Date.now()}-${path.basename(remotePath)}`);
-      await sftp.fastGet(remotePath, tempFilePath);
-      const content = fs.readFileSync(tempFilePath, 'utf8');
-      return { filePath: tempFilePath, content };
+      const buf = await sftp.get(remotePath);
+      // sftp.get without a localDst returns a Buffer.
+      return (buf as Buffer).toString("utf8");
     });
   }
 
   async uploadFile(remotePath: string, content: string): Promise<boolean> {
     return this.withClient(async (sftp) => {
-      const tempFilePath = path.join(this.tempDir, `upload-${Date.now()}-${path.basename(remotePath)}`);
-      fs.writeFileSync(tempFilePath, content);
-      await sftp.fastPut(tempFilePath, remotePath);
-      fs.unlinkSync(tempFilePath);
+      await sftp.put(Buffer.from(content, "utf8"), remotePath);
       return true;
     });
   }

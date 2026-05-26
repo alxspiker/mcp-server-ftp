@@ -79,7 +79,7 @@ server.tool(
   },
   async ({ remotePath }) => {
     try {
-      const { content } = await ftpClient.downloadFile(resolvePath(remotePath));
+      const content = await ftpClient.downloadFile(resolvePath(remotePath));
       
       return {
         content: [
