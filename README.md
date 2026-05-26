@@ -61,11 +61,10 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
       "command": "node",
       "args": ["/absolute/path/to/mcp-server-sftp/build/index.js"],
       "env": {
-        "FTP_HOST": "ftp.example.com",
-        "FTP_PORT": "21",
+        "FTP_HOST": "sftp.example.com",
+        "FTP_PORT": "22",
         "FTP_USER": "your-username",
-        "FTP_PASSWORD": "your-password",
-        "FTP_SECURE": "false"
+        "FTP_PASSWORD": "your-password"
       }
     }
   }
@@ -93,31 +92,10 @@ For SFTP servers, use port 22. The connection is always secure via SSH:
 }
 ```
 
-**Note:** For SFTP (port 22), `FTP_SECURE` is ignored as the connection is always secured via SSH.
-
 ### Windows
 Edit `%APPDATA%\Claude\claude_desktop_config.json`:
 
-#### FTP Configuration
-```json
-{
-  "mcpServers": {
-    "sftp-server": {
-      "command": "node",
-      "args": ["C:\\path\\to\\mcp-server-sftp\\build\\index.js"],
-      "env": {
-        "FTP_HOST": "ftp.example.com",
-        "FTP_PORT": "21",
-        "FTP_USER": "your-username",
-        "FTP_PASSWORD": "your-password",
-        "FTP_SECURE": "false"
-      }
-    }
-  }
-}
-```
-
-#### SFTP Configuration (SSH, port 22)
+#### SFTP Configuration
 ```json
 {
   "mcpServers": {
@@ -151,15 +129,12 @@ If you encounter build issues on Windows:
 
 | Environment Variable | Description | Default |
 |---------------------|-------------|---------|
-| `FTP_HOST` | FTP/SFTP server hostname or IP address | localhost |
-| `FTP_PORT` | Server port (21 for FTP, 22 for SFTP) | 21 |
-| `FTP_USER` | FTP/SFTP username | anonymous |
-| `FTP_PASSWORD` | FTP/SFTP password | (empty string) |
-| `FTP_SECURE` | Use secure FTP (FTPS) - **ignored for SFTP (port 22)** | false |
+| `FTP_HOST` | SFTP server hostname or IP address | localhost |
+| `FTP_PORT` | SFTP server port | 22 |
+| `FTP_USER` | SFTP username | anonymous |
+| `FTP_PASSWORD` | SFTP password | (empty string) |
 
-**Protocol Selection:**
-- **Port 21**: Standard FTP (use `FTP_SECURE=true` for FTPS/FTP over TLS)
-- **Port 22**: SFTP (SSH File Transfer Protocol) - always secure, `FTP_SECURE` is ignored
+**Protocol:** This server speaks SFTP (SSH File Transfer Protocol) only. Connect on port 22 (default).
 
 ## Usage
 
@@ -183,25 +158,10 @@ After configuring and restarting Claude for Desktop, you can use natural languag
 | `delete-file` | Delete a file from the FTP/SFTP server |
 | `delete-directory` | Delete a directory from the FTP/SFTP server |
 
-## Why SFTP?
-
-This server now supports **SFTP** (SSH File Transfer Protocol) in addition to traditional FTP/FTPS. SFTP offers several advantages:
-
-- **Security**: SFTP uses SSH encryption for all data transfer, providing end-to-end security
-- **Modern Standard**: Many modern hosting providers and cloud services only support SFTP (port 22)
-- **Firewall Friendly**: SFTP typically works better with firewalls as it uses a single port (22)
-- **Built-in Authentication**: Leverages SSH's robust authentication mechanisms
-
-**When to use SFTP vs FTP:**
-- Use **SFTP (port 22)** for most modern servers, cloud hosting, and when security is a priority
-- Use **FTP (port 21)** only when connecting to legacy systems that don't support SFTP
-- Use **FTPS** (port 21 with `FTP_SECURE=true`) when you need secure transfer but the server only supports FTP over TLS
-
 ## Security Considerations
 
-- FTP/SFTP credentials are stored in the Claude configuration file. Ensure this file has appropriate permissions.
-- **SFTP (port 22)** connections are always secured via SSH encryption.
-- **FTPS** for traditional FTP can be enabled by setting `FTP_SECURE=true` if your server supports FTP over TLS.
+- SFTP credentials are stored in the Claude configuration file. Ensure this file has appropriate permissions.
+- All connections are secured via SSH encryption.
 - The server creates temporary files for uploads and downloads in your system's temp directory.
 
 ## Contributors

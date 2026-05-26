@@ -6,7 +6,6 @@ export interface FtpConfig {
   port: number;
   user: string;
   password: string;
-  secure: boolean;
 }
 
 // Create SFTP client wrapper
