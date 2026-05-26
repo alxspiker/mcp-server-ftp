@@ -71,31 +71,9 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
 }
 ```
 
-#### SFTP Configuration (SSH, port 22)
-
-For SFTP servers, use port 22. The connection is always secure via SSH:
-
-```json
-{
-  "mcpServers": {
-    "sftp-server": {
-      "command": "node",
-      "args": ["/absolute/path/to/mcp-server-sftp/build/index.js"],
-      "env": {
-        "FTP_HOST": "sftp.example.com",
-        "FTP_PORT": "22",
-        "FTP_USER": "your-username",
-        "FTP_PASSWORD": "your-password"
-      }
-    }
-  }
-}
-```
-
 ### Windows
 Edit `%APPDATA%\Claude\claude_desktop_config.json`:
 
-#### SFTP Configuration
 ```json
 {
   "mcpServers": {
@@ -162,7 +140,7 @@ After configuring and restarting Claude for Desktop, you can use natural languag
 
 - SFTP credentials are stored in the Claude configuration file. Ensure this file has appropriate permissions.
 - All connections are secured via SSH encryption.
-- The server creates temporary files for uploads and downloads in your system's temp directory.
+- File content is transferred in memory; no temporary files are written to disk.
 
 ## Contributors
 
