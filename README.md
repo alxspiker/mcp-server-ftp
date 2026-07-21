@@ -50,11 +50,10 @@ npm run build
 git clone https://github.com/alxspiker/mcp-server-ftp.git
 cd mcp-server-ftp
 
-# Run the Windows build helper script
-build-windows.bat
+# Install dependencies and build
+npm install
+npm run build
 ```
-
-The `build-windows.bat` script handles dependency installation and building on Windows systems, with fallback options if the TypeScript compiler has issues.
 
 ## Configuration
 
@@ -106,10 +105,9 @@ Edit `%APPDATA%\Claude\claude_desktop_config.json`:
 
 If you encounter build issues on Windows:
 
-1. Use the provided `build-windows.bat` script which handles common build issues
-2. Make sure Node.js and npm are properly installed
-3. Try running the TypeScript compiler directly: `npx tsc`
-4. If you still have issues, you can use the pre-compiled files in the `build` directory by running:
+1. Make sure Node.js (18.14 or newer) and npm are properly installed
+2. Try running the TypeScript compiler directly: `npx tsc`
+3. If you still have issues, you can use the pre-compiled files in the `build` directory by running:
    ```
    node path\to\mcp-server-ftp\build\index.js
    ```
