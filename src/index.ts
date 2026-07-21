@@ -6,6 +6,7 @@ import { FtpClient, FtpConfig } from "./ftp-client.js";
 import { SftpClient, SftpConfig } from "./sftp-client.js";
 import { decrypt } from "./crypto.js";
 import { ConnectionType } from "./connection-type.js";
+import { loadEncryptionKey } from "./keychain.js";
 
 function resolveSecure(raw: string | undefined): boolean {
   const v = raw?.trim().toLowerCase();
@@ -250,6 +251,8 @@ function formatSize(bytes: number): string {
 
 // Initialize and run the server
 async function main() {
+  // Load encryption key from OS keychain before decrypting any credentials
+  await loadEncryptionKey();
   try {
     const protocol = resolveProtocol(process.env.FTP_PROTOCOL);
     const host = process.env.FTP_HOST || "localhost";
