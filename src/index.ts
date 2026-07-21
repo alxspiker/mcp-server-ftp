@@ -32,7 +32,7 @@ let ftpClient: AnyFtpClient;
 // Create server instance
 const server = new McpServer({
   name: "mcp-server-ftp",
-  version: "1.1.0",
+  version: "1.2.0",
 });
 
 // The MCP SDK dispatches tool calls concurrently, but concurrent FTP operations
@@ -63,6 +63,13 @@ function errorResult(prefix: string, error: unknown) {
   };
 }
 
+const fileEntrySchema = z.object({
+  name: z.string(),
+  type: z.string(),
+  size: z.number(),
+  modifiedDate: z.string(),
+});
+
 // Register list-directory tool
 server.registerTool(
   "list-directory",
@@ -72,6 +79,14 @@ server.registerTool(
     inputSchema: {
       remotePath: z.string().describe("Path of the directory on the FTP server"),
     },
+    outputSchema: {
+      path: z.string().describe("The directory that was listed"),
+      entries: z.array(fileEntrySchema).describe("Directory entries"),
+      totalCount: z.number(),
+      directoryCount: z.number(),
+      fileCount: z.number(),
+    },
+    annotations: { readOnlyHint: true, openWorldHint: false },
   },
   serialized(async ({ remotePath }) => {
     try {
@@ -82,7 +97,9 @@ server.registerTool(
         `${item.type === "directory" ? "[DIR]" : "[FILE]"} ${item.name} ${item.type === "file" ? `(${formatSize(item.size)})` : ""} - ${item.modifiedDate}`
       ).join("\n");
 
-      const summary = `Total: ${listing.length} items (${listing.filter(i => i.type === "directory").length} directories, ${listing.filter(i => i.type === "file").length} files)`;
+      const directoryCount = listing.filter(i => i.type === "directory").length;
+      const fileCount = listing.filter(i => i.type === "file").length;
+      const summary = `Total: ${listing.length} items (${directoryCount} directories, ${fileCount} files)`;
 
       return {
         content: [
@@ -90,7 +107,14 @@ server.registerTool(
             type: "text" as const,
             text: `Directory listing for: ${remotePath}\n\n${formatted}\n\n${summary}`
           }
-        ]
+        ],
+        structuredContent: {
+          path: remotePath,
+          entries: listing,
+          totalCount: listing.length,
+          directoryCount,
+          fileCount,
+        },
       };
     } catch (error) {
       return errorResult("Error listing directory", error);
@@ -107,6 +131,12 @@ server.registerTool(
     inputSchema: {
       remotePath: z.string().describe("Path of the file on the FTP server"),
     },
+    outputSchema: {
+      remotePath: z.string(),
+      content: z.string().describe("File content, encoded per the encoding field"),
+      encoding: z.enum(["utf8", "base64"]).describe("utf8 for text files, base64 for binary files"),
+    },
+    annotations: { readOnlyHint: true, openWorldHint: false },
   },
   serialized(async ({ remotePath }) => {
     try {
@@ -122,7 +152,8 @@ server.registerTool(
             type: "text" as const,
             text: `${header}\n\n${content}`
           }
-        ]
+        ],
+        structuredContent: { remotePath, content, encoding },
       };
     } catch (error) {
       return errorResult("Error downloading file", error);
@@ -141,10 +172,16 @@ server.registerTool(
       content: z.string().describe("Content to upload to the file"),
       encoding: z.enum(["utf8", "base64"]).optional().describe("Encoding of the provided content (default: utf8)"),
     },
+    outputSchema: {
+      remotePath: z.string(),
+      bytesWritten: z.number(),
+    },
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
   },
   serialized(async ({ remotePath, content, encoding }) => {
     try {
-      await ftpClient.uploadFile(remotePath, content, encoding ?? "utf8");
+      const enc = encoding ?? "utf8";
+      await ftpClient.uploadFile(remotePath, content, enc);
 
       return {
         content: [
@@ -152,7 +189,8 @@ server.registerTool(
             type: "text" as const,
             text: `File successfully uploaded to ${remotePath}`
           }
-        ]
+        ],
+        structuredContent: { remotePath, bytesWritten: Buffer.byteLength(content, enc) },
       };
     } catch (error) {
       return errorResult("Error uploading file", error);
@@ -169,6 +207,11 @@ server.registerTool(
     inputSchema: {
       remotePath: z.string().describe("Path of the directory to create"),
     },
+    outputSchema: {
+      remotePath: z.string(),
+      created: z.boolean(),
+    },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   },
   serialized(async ({ remotePath }) => {
     try {
@@ -180,7 +223,8 @@ server.registerTool(
             type: "text" as const,
             text: `Directory successfully created at ${remotePath}`
           }
-        ]
+        ],
+        structuredContent: { remotePath, created: true },
       };
     } catch (error) {
       return errorResult("Error creating directory", error);
@@ -197,6 +241,11 @@ server.registerTool(
     inputSchema: {
       remotePath: z.string().describe("Path of the file to delete"),
     },
+    outputSchema: {
+      remotePath: z.string(),
+      deleted: z.boolean(),
+    },
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
   },
   serialized(async ({ remotePath }) => {
     try {
@@ -208,7 +257,8 @@ server.registerTool(
             type: "text" as const,
             text: `File successfully deleted from ${remotePath}`
           }
-        ]
+        ],
+        structuredContent: { remotePath, deleted: true },
       };
     } catch (error) {
       return errorResult("Error deleting file", error);
@@ -225,6 +275,11 @@ server.registerTool(
     inputSchema: {
       remotePath: z.string().describe("Path of the directory to delete"),
     },
+    outputSchema: {
+      remotePath: z.string(),
+      deleted: z.boolean(),
+    },
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
   },
   serialized(async ({ remotePath }) => {
     try {
@@ -236,7 +291,8 @@ server.registerTool(
             type: "text" as const,
             text: `Directory successfully deleted from ${remotePath}`
           }
-        ]
+        ],
+        structuredContent: { remotePath, deleted: true },
       };
     } catch (error) {
       return errorResult("Error deleting directory", error);
@@ -254,6 +310,12 @@ server.registerTool(
       fromPath: z.string().describe("Current path of the file or directory"),
       toPath: z.string().describe("New path for the file or directory"),
     },
+    outputSchema: {
+      fromPath: z.string(),
+      toPath: z.string(),
+      renamed: z.boolean(),
+    },
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
   },
   serialized(async ({ fromPath, toPath }) => {
     try {
@@ -265,7 +327,8 @@ server.registerTool(
             type: "text" as const,
             text: `Successfully renamed ${fromPath} to ${toPath}`
           }
-        ]
+        ],
+        structuredContent: { fromPath, toPath, renamed: true },
       };
     } catch (error) {
       return errorResult("Error renaming", error);
@@ -285,6 +348,12 @@ server.registerTool(
       newText: z.string().describe("Text to replace it with"),
       replaceAll: z.boolean().optional().describe("Replace every occurrence instead of requiring oldText to be unique (default: false)"),
     },
+    outputSchema: {
+      remotePath: z.string(),
+      replacements: z.number().describe("Number of occurrences replaced"),
+      fileSize: z.number().describe("Size of the file in bytes after the edit"),
+    },
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
   },
   serialized(async ({ remotePath, oldText, newText, replaceAll }) => {
     try {
@@ -319,14 +388,16 @@ server.registerTool(
 
       const updated = replaceAll ? content.split(oldText).join(newText) : content.replace(oldText, newText);
       await ftpClient.uploadFile(remotePath, updated, "utf8");
+      const fileSize = Buffer.byteLength(updated, "utf8");
 
       return {
         content: [
           {
             type: "text" as const,
-            text: `Successfully edited ${remotePath}: replaced ${occurrences} occurrence${occurrences === 1 ? "" : "s"} (file is now ${formatSize(Buffer.byteLength(updated, "utf8"))})`
+            text: `Successfully edited ${remotePath}: replaced ${occurrences} occurrence${occurrences === 1 ? "" : "s"} (file is now ${formatSize(fileSize)})`
           }
-        ]
+        ],
+        structuredContent: { remotePath, replacements: occurrences, fileSize },
       };
     } catch (error) {
       return errorResult("Error editing file", error);
@@ -345,18 +416,26 @@ server.registerTool(
       content: z.string().describe("Content to append to the file"),
       encoding: z.enum(["utf8", "base64"]).optional().describe("Encoding of the provided content (default: utf8)"),
     },
+    outputSchema: {
+      remotePath: z.string(),
+      appendedBytes: z.number(),
+    },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
   },
   serialized(async ({ remotePath, content, encoding }) => {
     try {
-      await ftpClient.appendFile(remotePath, content, encoding ?? "utf8");
+      const enc = encoding ?? "utf8";
+      await ftpClient.appendFile(remotePath, content, enc);
+      const appendedBytes = Buffer.byteLength(content, enc);
 
       return {
         content: [
           {
             type: "text" as const,
-            text: `Successfully appended ${formatSize(Buffer.byteLength(content, encoding ?? "utf8"))} to ${remotePath}`
+            text: `Successfully appended ${formatSize(appendedBytes)} to ${remotePath}`
           }
-        ]
+        ],
+        structuredContent: { remotePath, appendedBytes },
       };
     } catch (error) {
       return errorResult("Error appending to file", error);

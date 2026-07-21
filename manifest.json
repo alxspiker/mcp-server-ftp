@@ -2,7 +2,7 @@
   "manifest_version": "0.2",
   "name": "mcp-server-ftp",
   "display_name": "FTP Access Server",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "MCP server for FTP/SFTP access: list, download, upload, edit, append, rename, and delete files and directories on remote servers.",
   "long_description": "Interact with FTP and SFTP servers using natural language. Supports binary-safe file transfers, in-place text edits without re-uploading whole files, appends, renames, directory management, FTPS, SSH key authentication, and AES-256-GCM encrypted credentials with OS keychain support for the encryption key.",
   "author": {
@@ -46,21 +46,21 @@
       "title": "FTP Host",
       "description": "FTP server hostname or IP address",
       "default": "localhost",
-      "required": true
+      "required": false
     },
     "ftp_port": {
       "type": "string",
       "title": "Port",
       "description": "FTP server port (21 for FTP, 22 for SFTP)",
       "default": "21",
-      "required": true
+      "required": false
     },
     "ftp_user": {
       "type": "string",
       "title": "Username",
       "description": "FTP username (supports enc: encrypted values)",
       "default": "anonymous",
-      "required": true
+      "required": false
     },
     "ftp_password": {
       "type": "string",
@@ -100,6 +100,60 @@
         "required": [
           "remotePath"
         ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string"
+                },
+                "size": {
+                  "type": "number"
+                },
+                "modifiedDate": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name",
+                "type",
+                "size",
+                "modifiedDate"
+              ]
+            }
+          },
+          "totalCount": {
+            "type": "number"
+          },
+          "directoryCount": {
+            "type": "number"
+          },
+          "fileCount": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "path",
+          "entries",
+          "totalCount",
+          "directoryCount",
+          "fileCount"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false
       }
     },
     {
@@ -116,6 +170,33 @@
         "required": [
           "remotePath"
         ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "remotePath": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "encoding": {
+            "type": "string",
+            "enum": [
+              "utf8",
+              "base64"
+            ]
+          }
+        },
+        "required": [
+          "remotePath",
+          "content",
+          "encoding"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false
       }
     },
     {
@@ -145,6 +226,27 @@
           "remotePath",
           "content"
         ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "remotePath": {
+            "type": "string"
+          },
+          "bytesWritten": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "remotePath",
+          "bytesWritten"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
       }
     },
     {
@@ -175,6 +277,31 @@
           "oldText",
           "newText"
         ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "remotePath": {
+            "type": "string"
+          },
+          "replacements": {
+            "type": "number"
+          },
+          "fileSize": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "remotePath",
+          "replacements",
+          "fileSize"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
       }
     },
     {
@@ -204,6 +331,27 @@
           "remotePath",
           "content"
         ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "remotePath": {
+            "type": "string"
+          },
+          "appendedBytes": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "remotePath",
+          "appendedBytes"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
       }
     },
     {
@@ -225,6 +373,31 @@
           "fromPath",
           "toPath"
         ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "fromPath": {
+            "type": "string"
+          },
+          "toPath": {
+            "type": "string"
+          },
+          "renamed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "fromPath",
+          "toPath",
+          "renamed"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
       }
     },
     {
@@ -241,6 +414,27 @@
         "required": [
           "remotePath"
         ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "remotePath": {
+            "type": "string"
+          },
+          "created": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "remotePath",
+          "created"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
       }
     },
     {
@@ -257,6 +451,27 @@
         "required": [
           "remotePath"
         ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "remotePath": {
+            "type": "string"
+          },
+          "deleted": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "remotePath",
+          "deleted"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
       }
     },
     {
@@ -273,6 +488,27 @@
         "required": [
           "remotePath"
         ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "remotePath": {
+            "type": "string"
+          },
+          "deleted": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "remotePath",
+          "deleted"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
       }
     }
   ],

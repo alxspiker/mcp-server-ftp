@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.2.0 — 2026-07-21
+
+### Added
+- **Structured output**: every tool now declares an `outputSchema` and returns `structuredContent` alongside the human-readable text, so agents can consume results without parsing prose.
+- **Tool annotations**: read-only, destructive, and idempotent hints on all tools, letting clients apply appropriate confirmation policies (e.g. `delete-file` is flagged destructive; `list-directory` and `download-file` are read-only).
+
+### Changed
+- All connection settings in the Smithery/MCPB manifest are now optional, matching the server's actual defaults (localhost, port 21, anonymous).
+
 ## 1.1.0 — 2026-07-21
 
 ### Fixed
