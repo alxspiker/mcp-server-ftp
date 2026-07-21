@@ -29,6 +29,24 @@ npx -y @smithery/cli install @alxspiker/mcp-server-ftp --client claude
 - Node.js 16 or higher
 - Claude for Desktop (or other MCP-compatible client)
 
+### Installing via npm
+
+The server is published as [`mcp-server-ftp`](https://www.npmjs.com/package/mcp-server-ftp), so no clone or build is needed — reference it directly in your Claude Desktop config:
+
+```json
+{
+  "mcpServers": {
+    "ftp-server": {
+      "command": "npx",
+      "args": ["-y", "mcp-server-ftp"],
+      "env": {
+        "FTP_HOST": "ftp.example.com"
+      }
+    }
+  }
+}
+```
+
 ### Building from Source
 
 #### Linux/macOS
