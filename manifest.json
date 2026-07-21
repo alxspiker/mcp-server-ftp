@@ -1,0 +1,289 @@
+{
+  "manifest_version": "0.2",
+  "name": "mcp-server-ftp",
+  "display_name": "FTP Access Server",
+  "version": "1.1.0",
+  "description": "MCP server for FTP/SFTP access: list, download, upload, edit, append, rename, and delete files and directories on remote servers.",
+  "long_description": "Interact with FTP and SFTP servers using natural language. Supports binary-safe file transfers, in-place text edits without re-uploading whole files, appends, renames, directory management, FTPS, SSH key authentication, and AES-256-GCM encrypted credentials with OS keychain support for the encryption key.",
+  "author": {
+    "name": "alxspiker",
+    "url": "https://github.com/alxspiker"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/alxspiker/mcp-server-ftp"
+  },
+  "homepage": "https://github.com/alxspiker/mcp-server-ftp",
+  "license": "MIT",
+  "keywords": [
+    "ftp",
+    "sftp",
+    "ftps",
+    "files",
+    "transfer"
+  ],
+  "server": {
+    "type": "node",
+    "entry_point": "build/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": [
+        "${__dirname}/build/index.js"
+      ],
+      "env": {
+        "FTP_HOST": "${user_config.ftp_host}",
+        "FTP_PORT": "${user_config.ftp_port}",
+        "FTP_USER": "${user_config.ftp_user}",
+        "FTP_PASSWORD": "${user_config.ftp_password}",
+        "FTP_SECURE": "${user_config.ftp_secure}",
+        "FTP_PROTOCOL": "${user_config.ftp_protocol}"
+      }
+    }
+  },
+  "user_config": {
+    "ftp_host": {
+      "type": "string",
+      "title": "FTP Host",
+      "description": "FTP server hostname or IP address",
+      "default": "localhost",
+      "required": true
+    },
+    "ftp_port": {
+      "type": "string",
+      "title": "Port",
+      "description": "FTP server port (21 for FTP, 22 for SFTP)",
+      "default": "21",
+      "required": true
+    },
+    "ftp_user": {
+      "type": "string",
+      "title": "Username",
+      "description": "FTP username (supports enc: encrypted values)",
+      "default": "anonymous",
+      "required": true
+    },
+    "ftp_password": {
+      "type": "string",
+      "title": "Password",
+      "description": "FTP password (supports enc: encrypted values)",
+      "sensitive": true,
+      "default": "",
+      "required": false
+    },
+    "ftp_secure": {
+      "type": "string",
+      "title": "Use FTPS",
+      "description": "Use secure FTP (true/false). Ignored when protocol is sftp.",
+      "default": "false",
+      "required": false
+    },
+    "ftp_protocol": {
+      "type": "string",
+      "title": "Protocol",
+      "description": "ftp or sftp",
+      "default": "ftp",
+      "required": false
+    }
+  },
+  "tools": [
+    {
+      "name": "list-directory",
+      "description": "List contents of an FTP directory",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "remotePath": {
+            "type": "string",
+            "description": "Path of the directory on the FTP server"
+          }
+        },
+        "required": [
+          "remotePath"
+        ]
+      }
+    },
+    {
+      "name": "download-file",
+      "description": "Download a file from the FTP server (binary files returned base64-encoded)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "remotePath": {
+            "type": "string",
+            "description": "Path of the file on the FTP server"
+          }
+        },
+        "required": [
+          "remotePath"
+        ]
+      }
+    },
+    {
+      "name": "upload-file",
+      "description": "Upload a file to the FTP server (supports base64 for binary content)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "remotePath": {
+            "type": "string",
+            "description": "Destination path on the FTP server"
+          },
+          "content": {
+            "type": "string",
+            "description": "Content to upload to the file"
+          },
+          "encoding": {
+            "type": "string",
+            "enum": [
+              "utf8",
+              "base64"
+            ],
+            "description": "Encoding of the provided content (default: utf8)"
+          }
+        },
+        "required": [
+          "remotePath",
+          "content"
+        ]
+      }
+    },
+    {
+      "name": "edit-file",
+      "description": "Replace an exact string in a remote text file without re-uploading the whole file",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "remotePath": {
+            "type": "string",
+            "description": "Path of the file on the FTP server"
+          },
+          "oldText": {
+            "type": "string",
+            "description": "Exact text to find in the file"
+          },
+          "newText": {
+            "type": "string",
+            "description": "Text to replace it with"
+          },
+          "replaceAll": {
+            "type": "boolean",
+            "description": "Replace every occurrence instead of requiring oldText to be unique (default: false)"
+          }
+        },
+        "required": [
+          "remotePath",
+          "oldText",
+          "newText"
+        ]
+      }
+    },
+    {
+      "name": "append-file",
+      "description": "Append content to a file, creating it if missing",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "remotePath": {
+            "type": "string",
+            "description": "Path of the file on the FTP server"
+          },
+          "content": {
+            "type": "string",
+            "description": "Content to append to the file"
+          },
+          "encoding": {
+            "type": "string",
+            "enum": [
+              "utf8",
+              "base64"
+            ],
+            "description": "Encoding of the provided content (default: utf8)"
+          }
+        },
+        "required": [
+          "remotePath",
+          "content"
+        ]
+      }
+    },
+    {
+      "name": "rename-file",
+      "description": "Rename or move a file or directory",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "fromPath": {
+            "type": "string",
+            "description": "Current path of the file or directory"
+          },
+          "toPath": {
+            "type": "string",
+            "description": "New path for the file or directory"
+          }
+        },
+        "required": [
+          "fromPath",
+          "toPath"
+        ]
+      }
+    },
+    {
+      "name": "create-directory",
+      "description": "Create a new directory",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "remotePath": {
+            "type": "string",
+            "description": "Path of the directory to create"
+          }
+        },
+        "required": [
+          "remotePath"
+        ]
+      }
+    },
+    {
+      "name": "delete-file",
+      "description": "Delete a file",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "remotePath": {
+            "type": "string",
+            "description": "Path of the file to delete"
+          }
+        },
+        "required": [
+          "remotePath"
+        ]
+      }
+    },
+    {
+      "name": "delete-directory",
+      "description": "Delete a directory",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "remotePath": {
+            "type": "string",
+            "description": "Path of the directory to delete"
+          }
+        },
+        "required": [
+          "remotePath"
+        ]
+      }
+    }
+  ],
+  "compatibility": {
+    "platforms": [
+      "darwin",
+      "win32",
+      "linux"
+    ],
+    "runtimes": {
+      "node": ">=18.14.0"
+    }
+  }
+}
