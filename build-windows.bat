@@ -44,18 +44,8 @@ if not exist "build" mkdir build
 echo Compiling TypeScript files...
 call npx tsc
 if %ERRORLEVEL% neq 0 (
-    echo TypeScript compilation failed.
-    echo Falling back to manual file copy...
-
-    :: Check if source files exist
-    if not exist "src\index.ts" (
-        echo Source files not found.
-        exit /b 1
-    )
-
-    :: Copy TypeScript files to JavaScript files
-    echo Copying TypeScript files to JavaScript...
-    copy src\*.ts build\*.js
+    echo TypeScript compilation failed. Please check the errors above.
+    exit /b 1
 )
 
 :: Check if build succeeded

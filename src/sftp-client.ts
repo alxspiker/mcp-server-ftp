@@ -2,6 +2,9 @@ import Ssh2SftpClient from "ssh2-sftp-client";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
+import { isUtf8 } from "buffer";
+import { randomUUID } from "crypto";
+import type { FileEncoding } from "./ftp-client.js";
 
 export interface SftpConfig {
   host: string;
@@ -90,25 +93,30 @@ export class SftpClient {
     }
   }
 
-  async downloadFile(remotePath: string): Promise<{ filePath: string; content: string }> {
+  async downloadFile(remotePath: string): Promise<{ content: string; encoding: FileEncoding }> {
     const client = new Ssh2SftpClient();
-    const tempFilePath = path.join(this.tempDir, `download-${Date.now()}-${path.basename(remotePath)}`);
+    const tempFilePath = path.join(this.tempDir, `download-${randomUUID()}-${path.basename(remotePath)}`);
     try {
       await client.connect(this.buildClientOptions());
       await client.fastGet(remotePath, tempFilePath);
-      const content = fs.readFileSync(tempFilePath, "utf8");
-      return { filePath: tempFilePath, content };
+      // Read as raw bytes; only decode as utf8 when the content actually is valid utf8,
+      // otherwise fall back to base64 so binary files survive the round trip
+      const buffer = fs.readFileSync(tempFilePath);
+      if (isUtf8(buffer)) {
+        return { content: buffer.toString("utf8"), encoding: "utf8" };
+      }
+      return { content: buffer.toString("base64"), encoding: "base64" };
     } finally {
       if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
       await safeDisconnect(client);
     }
   }
 
-  async uploadFile(remotePath: string, content: string): Promise<boolean> {
+  async uploadFile(remotePath: string, content: string, encoding: FileEncoding = "utf8"): Promise<boolean> {
     const client = new Ssh2SftpClient();
-    const tempFilePath = path.join(this.tempDir, `upload-${Date.now()}-${path.basename(remotePath)}`);
+    const tempFilePath = path.join(this.tempDir, `upload-${randomUUID()}-${path.basename(remotePath)}`);
     try {
-      fs.writeFileSync(tempFilePath, content);
+      fs.writeFileSync(tempFilePath, Buffer.from(content, encoding));
       await client.connect(this.buildClientOptions());
       await client.fastPut(tempFilePath, remotePath);
       return true;
@@ -145,6 +153,28 @@ export class SftpClient {
     try {
       await client.connect(this.buildClientOptions());
       await client.rmdir(remotePath, true);
+      return true;
+    } finally {
+      await safeDisconnect(client);
+    }
+  }
+
+  async appendFile(remotePath: string, content: string, encoding: FileEncoding = "utf8"): Promise<boolean> {
+    const client = new Ssh2SftpClient();
+    try {
+      await client.connect(this.buildClientOptions());
+      await client.append(Buffer.from(content, encoding), remotePath);
+      return true;
+    } finally {
+      await safeDisconnect(client);
+    }
+  }
+
+  async rename(fromPath: string, toPath: string): Promise<boolean> {
+    const client = new Ssh2SftpClient();
+    try {
+      await client.connect(this.buildClientOptions());
+      await client.rename(fromPath, toPath);
       return true;
     } finally {
       await safeDisconnect(client);
