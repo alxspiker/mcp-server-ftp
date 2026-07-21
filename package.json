@@ -22,7 +22,7 @@
     "model-context-protocol",
     "claude"
   ],
-  "author": "",
+  "author": "alxspiker (https://github.com/alxspiker)",
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",
@@ -45,5 +45,13 @@
   },
   "optionalDependencies": {
     "keytar": "^7.9.0"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alxspiker/mcp-server-ftp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/alxspiker/mcp-server-ftp/issues"
+  },
+  "homepage": "https://github.com/alxspiker/mcp-server-ftp#readme"
 }
