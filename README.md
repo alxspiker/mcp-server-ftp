@@ -126,7 +126,7 @@ If you encounter build issues on Windows:
 | `FTP_PROTOCOL` | Protocol to use: `ftp` or `sftp` | ftp |
 | `FTP_PRIVATE_KEY_PATH` | Path to SSH private key for SFTP (e.g. `~/.ssh/id_ed25519`) | (auto-detect) |
 | `FTP_PASSPHRASE` | Passphrase for the SSH private key (supports encryption) | (empty string) |
-| `FTP_ENCRYPTION_KEY` | 64-character hex AES-256 key for decrypting credentials | (disabled) |
+| `FTP_ENCRYPTION_KEY` | 64-character hex AES-256 key for decrypting credentials — store in OS keychain, not here | (disabled) |
 
 ## SSH / SFTP Support
 
@@ -175,7 +175,9 @@ The server looks for a private key in this order:
 
 ## Credential Encryption
 
-Storing plaintext passwords in your Claude config file is a security risk. The server supports AES-256-GCM encryption for `FTP_USER` and `FTP_PASSWORD` so the config only ever contains ciphertext.
+Storing plaintext passwords in your Claude config file is a security risk. The server supports AES-256-GCM encryption for `FTP_USER`, `FTP_PASSWORD`, and `FTP_PASSPHRASE` so the config only ever contains ciphertext.
+
+The encryption key itself (`FTP_ENCRYPTION_KEY`) must **never** be stored in the same config file as the encrypted credentials — that would defeat the purpose. Store it in the OS keychain, or global environment variable instead (see below).
 
 ### 1. Generate an encryption key
 
@@ -185,18 +187,45 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
 Keep this key secret — treat it like a master password.
 
-### 2. Encrypt a credential value
+### 2. Store the key in the OS keychain (recommended)
+
+After building the project, run the one-time setup script:
+
+```bash
+npm run build
+npm run store-key -- <your-64-char-hex-key>
+```
+
+This writes the key into the OS keychain (macOS Keychain, Windows Credential Manager, or Linux Secret Service). The server loads it automatically on start-up — no `FTP_ENCRYPTION_KEY` in the config file required.
+
+#### Option B: global environment variable
+
+If you prefer not to use the keychain, export the key from your shell profile (`~/.zshrc`, `~/.bash_profile`, etc.):
+
+```bash
+export FTP_ENCRYPTION_KEY=<your-64-char-hex-key>
+```
+
+This keeps the key out of the per-server config file while still making it available to the server process.
+
+### 3. Encrypt a credential value
 
 ```bash
 npm run build
 FTP_ENCRYPTION_KEY=<your-64-char-hex-key> npm run encrypt-env -- <plaintext-value>
 ```
 
+If you already stored the key in the keychain or your shell profile, the variable is picked up automatically:
+
+```bash
+npm run encrypt-env -- <plaintext-value>
+```
+
 The output is a self-contained encrypted string in the format `enc:<iv_hex>:<tag_hex>:<ciphertext_hex>`.
 
-### 3. Use the encrypted values in your config
+### 4. Use the encrypted values in your config
 
-Set `FTP_ENCRYPTION_KEY` alongside the encrypted credentials. Values that do not start with `enc:` are treated as plaintext, so you can encrypt selectively.
+Place only the encrypted credentials in the config. **Do not add `FTP_ENCRYPTION_KEY` here** — the server retrieves it from the keychain or your shell environment.
 
 ```json
 {
@@ -209,13 +238,14 @@ Set `FTP_ENCRYPTION_KEY` alongside the encrypted credentials. Values that do not
         "FTP_PORT": "21",
         "FTP_USER": "enc:aabbcc...:ddeeff...:112233...",
         "FTP_PASSWORD": "enc:aabbcc...:ddeeff...:112233...",
-        "FTP_SECURE": "false",
-        "FTP_ENCRYPTION_KEY": "<your-64-char-hex-key>"
+        "FTP_SECURE": "false"
       }
     }
   }
 }
 ```
+
+Values that do not start with `enc:` are treated as plaintext, so you can encrypt selectively.
 
 ## Usage
 
