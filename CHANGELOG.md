@@ -12,6 +12,7 @@
 - **Temp-file name collisions**: temp files were named with `Date.now()`, so two operations in the same millisecond could share (and delete) each other's temp file. Names now use `randomUUID()`.
 
 ### Added
+- `FTP_ENCRYPTION_KEY` can now be stored in the OS keychain (macOS Keychain, Windows Credential Manager, Linux Secret Service) instead of the config file, via `npm run store-key` — thanks @rencsaridogan ([#7](https://github.com/alxspiker/mcp-server-ftp/pull/7)). Falls back to the environment variable, so existing setups are unaffected.
 - New `rename-file` tool to rename or move files and directories (FTP and SFTP).
 - New `edit-file` tool: replaces an exact string in a text file so the model doesn't have to re-upload the entire file content. Requires the match to be unique (or `replaceAll: true`) and refuses binary files.
 - New `append-file` tool: appends to a file (native `APPE` on FTP, append on SFTP); creates the file if missing.
