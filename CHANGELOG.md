@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.2.1 — 2026-08-07
+
 ### Added
 - `FTP_PRIVATE_KEY_PATH` now accepts a 1Password secret reference (`op://vault/item/field`), resolved via the 1Password CLI (`op read`) so the SFTP private key never has to live in a file on disk. The key is cached in memory for the process lifetime; plain file paths and `~/.ssh` auto-detection are unchanged.
 
