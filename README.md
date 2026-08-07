@@ -304,7 +304,7 @@ After configuring and restarting Claude for Desktop, you can use natural languag
 | `upload-file` | Upload a file to the FTP server (pass `encoding: "base64"` for binary content) |
 | `create-directory` | Create a new directory on the FTP server |
 | `delete-file` | Delete a file from the FTP server |
-| `delete-directory` | Delete a directory on the FTP server |
+| `delete-directory` | Delete a directory from the FTP server |
 | `rename-file` | Rename or move a file or directory on the FTP server |
 | `edit-file` | Replace an exact string in a text file without re-uploading the whole file content |
 | `append-file` | Append content to a file (creates it if missing) |
