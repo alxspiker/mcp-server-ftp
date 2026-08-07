@@ -17,12 +17,13 @@ Do not commit passwords, API keys, npm tokens, Smithery tokens, private keys, or
 
 ## Version updates
 
-For a release, update the version in both:
+For a release, update the version in all three places:
 
 - `package.json`
 - `manifest.json`
+- the `version` passed to `McpServer` in `src/index.ts`
 
-Keep the two versions identical.
+Keep all three versions identical. The value in `src/index.ts` is reported by the server during MCP initialization, so leaving it unchanged would make the running server report an older version than npm and Smithery.
 
 Build the project before publishing:
 
@@ -104,7 +105,7 @@ After publishing, open the Smithery listing and confirm the new version is shown
 Before calling a release finished, check that:
 
 - the release commit is on `main`
-- `package.json` and `manifest.json` have the same version
+- `package.json`, `manifest.json`, and `src/index.ts` have the same version
 - `npm run build` passes
 - npm shows the new package version
 - Smithery shows the new server version
