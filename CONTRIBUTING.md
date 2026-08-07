@@ -17,6 +17,8 @@ Do not commit passwords, API keys, npm tokens, Smithery tokens, private keys, or
 
 ## Version updates
 
+Any significant change that will be merged to `main` needs a version bump in the same pull request. This includes new features, bug fixes, MCP tool or protocol changes, configuration changes, and other changes users should receive as an update. Small documentation-only or internal maintenance changes do not need a release unless they affect installation or published package behavior.
+
 For a release, update the version in all three places:
 
 - `package.json`
@@ -31,6 +33,14 @@ Build the project before publishing:
 npm install
 npm run build
 ```
+
+## GitHub release and tag
+
+After a versioned pull request is merged to `main`, create a GitHub Release for that version using a matching `vX.Y.Z` tag. For example, version `1.2.1` uses tag `v1.2.1`.
+
+The tag should point at the merged release commit on `main`. Use the GitHub Release notes to summarize the changes included in that version. The repository already uses this format for releases such as `v1.1.0` and `v1.2.0`.
+
+Do not reuse or move an existing release tag to a different commit. If another release is needed, bump the version again and create a new tag.
 
 ## Publish to npm
 
@@ -107,6 +117,8 @@ Before calling a release finished, check that:
 - the release commit is on `main`
 - `package.json`, `manifest.json`, and `src/index.ts` have the same version
 - `npm run build` passes
+- a GitHub Release exists with the matching `vX.Y.Z` tag
+- the tag points at the release commit on `main`
 - npm shows the new package version
 - Smithery shows the new server version
 
