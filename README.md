@@ -241,8 +241,7 @@ npm run encrypt-env -- <plaintext-value>
 - Prefer SFTP when available; it uses SSH encryption and key authentication without FTPS certificate configuration.
 - Use `FTP_SECURE=true` only for FTPS servers using the FTP protocol path.
 - Use credential encryption when a client configuration would otherwise contain plaintext credentials.
-- FTP transfers use short-lived local temporary files for upload/download/append operations and remove them in `finally` cleanup paths.
-- SFTP transfers are handled in memory.
+- FTP and SFTP transfers may use short-lived local temporary files for upload/download/append operations; those files are removed during cleanup after each operation.
 
 ## Troubleshooting Windows builds
 
