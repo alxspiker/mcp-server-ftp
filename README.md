@@ -1,24 +1,34 @@
 [![MseeP.ai Security Assessment Badge](https://mseep.net/pr/alxspiker-mcp-server-ftp-badge.png)](https://mseep.ai/app/alxspiker-mcp-server-ftp)
 
-# MCP Server for FTP Access
+# MCP Server for FTP, FTPS, and SFTP Access
 
 [![smithery badge](https://smithery.ai/badge/alxspikers-team/mcp-server-ftp)](https://smithery.ai/servers/alxspikers-team/mcp-server-ftp)
 
-This Model Context Protocol (MCP) server provides tools for interacting with FTP servers. It allows Claude.app to list directories, download and upload files, create directories, and delete files/directories on FTP servers.
+This Model Context Protocol (MCP) server provides file-management tools for FTP, FTPS, and SFTP servers. It supports directory listing, binary-safe downloads/uploads, text edits, appends, renames/moves, directory creation, and deletion.
+
+## Protocol support
+
+- **FTP** — traditional FTP, normally on port 21.
+- **FTPS** — FTP secured with TLS. Use `FTP_PROTOCOL=ftp` and `FTP_SECURE=true`.
+- **SFTP** — SSH File Transfer Protocol, normally on port 22. SFTP is a different protocol from FTPS and is already encrypted by SSH, so `FTP_SECURE` does not apply to it.
 
 ## Features
 
-- **List Directory Contents**: View files and folders on the FTP server
-- **Download Files**: Retrieve file content from the FTP server
-- **Upload Files**: Create new files or update existing ones
-- **Create Directories**: Make new folders on the FTP server
-- **Delete Files/Directories**: Remove files or directories
+- List files and directories
+- Download and upload text or binary files
+- Edit exact text in remote files
+- Append to files
+- Rename or move files/directories
+- Create and delete directories
+- FTP, FTPS, and SFTP support
+- SFTP password or SSH private-key authentication
+- Optional 1Password CLI private-key resolution
+- AES-256-GCM encrypted credential values
+- OS-keychain support for the encryption key
 
 ## Installation
 
 ### Installing via Smithery
-
-To install mcp-server-ftp for Claude Desktop automatically via [Smithery](https://smithery.ai/servers/alxspikers-team/mcp-server-ftp):
 
 ```bash
 npx -y @smithery/cli install alxspikers-team/mcp-server-ftp --client claude
@@ -26,12 +36,12 @@ npx -y @smithery/cli install alxspikers-team/mcp-server-ftp --client claude
 
 ### Prerequisites
 
-- Node.js 16 or higher
-- Claude for Desktop (or other MCP-compatible client)
+- Node.js 18.14 or newer
+- An MCP-compatible client such as Claude Desktop
 
 ### Installing via npm
 
-The server is published as [`mcp-server-ftp`](https://www.npmjs.com/package/mcp-server-ftp), so no clone or build is needed — reference it directly in your Claude Desktop config:
+The server is published as [`mcp-server-ftp`](https://www.npmjs.com/package/mcp-server-ftp):
 
 ```json
 {
@@ -47,38 +57,18 @@ The server is published as [`mcp-server-ftp`](https://www.npmjs.com/package/mcp-
 }
 ```
 
-### Building from Source
+### Building from source
 
-#### Linux/macOS
 ```bash
-# Clone the repository
 git clone https://github.com/alxspiker/mcp-server-ftp.git
 cd mcp-server-ftp
-
-# Install dependencies
-npm install
-
-# Build the project
-npm run build
-```
-
-#### Windows
-```bash
-# Clone the repository
-git clone https://github.com/alxspiker/mcp-server-ftp.git
-cd mcp-server-ftp
-
-# Install dependencies and build
 npm install
 npm run build
 ```
 
 ## Configuration
 
-To use this server with Claude for Desktop, add it to your configuration file:
-
-### MacOS/Linux
-Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
+### FTP example
 
 ```json
 {
@@ -89,105 +79,41 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
       "env": {
         "FTP_HOST": "ftp.example.com",
         "FTP_PORT": "21",
+        "FTP_PROTOCOL": "ftp",
         "FTP_USER": "your-username",
-        "FTP_PASSWORD": "your-password",
-        "FTP_SECURE": "false"
+        "FTP_PASSWORD": "your-password"
       }
     }
   }
 }
 ```
 
-### Windows
-Edit `%APPDATA%\Claude\claude_desktop_config.json`:
+### FTPS example
+
+FTPS uses the normal FTP client with TLS enabled:
 
 ```json
 {
   "mcpServers": {
     "ftp-server": {
       "command": "node",
-      "args": ["C:\\path\\to\\mcp-server-ftp\\build\\index.js"],
+      "args": ["/absolute/path/to/mcp-server-ftp/build/index.js"],
       "env": {
-        "FTP_HOST": "ftp.example.com",
+        "FTP_HOST": "ftps.example.com",
         "FTP_PORT": "21",
+        "FTP_PROTOCOL": "ftp",
+        "FTP_SECURE": "true",
         "FTP_USER": "your-username",
-        "FTP_PASSWORD": "your-password",
-        "FTP_SECURE": "false"
+        "FTP_PASSWORD": "your-password"
       }
     }
   }
 }
 ```
 
-## Troubleshooting Windows Build Issues
+`FTP_SECURE` is only meaningful when `FTP_PROTOCOL=ftp`. It is ignored by the SFTP path because SFTP is already encrypted over SSH.
 
-If you encounter build issues on Windows:
-
-1. Make sure Node.js (18.14 or newer) and npm are properly installed
-2. Try running the TypeScript compiler directly: `npx tsc`
-3. If you still have issues, you can use the pre-compiled files in the `build` directory by running:
-   ```
-   node path\to\mcp-server-ftp\build\index.js
-   ```
-
-## Configuration Options
-
-| Environment Variable | Description | Default |
-|---------------------|-------------|---------|
-| `FTP_HOST` | FTP server hostname or IP address | localhost |
-| `FTP_PORT` | FTP server port | 21 |
-| `FTP_USER` | FTP username (supports encryption) | anonymous |
-| `FTP_PASSWORD` | FTP password (supports encryption) | (empty string) |
-| `FTP_SECURE` | Use secure FTP (FTPS), ignored when `FTP_PROTOCOL=sftp` | false |
-| `FTP_PROTOCOL` | Protocol to use: `ftp` or `sftp` | ftp |
-| `FTP_PRIVATE_KEY_PATH` | Path to SSH private key for SFTP (e.g. `~/.ssh/id_ed25519`), or a 1Password secret reference (e.g. `op://Private/my-server/private key`) | (auto-detect) |
-| `FTP_PASSPHRASE` | Passphrase for the SSH private key (supports encryption) | (empty string) |
-| `FTP_ENCRYPTION_KEY` | 64-character hex AES-256 key for decrypting credentials — store in OS keychain, not here | (disabled) |
-
-## SSH / SFTP Support
-
-In addition to plain FTP and FTPS, the server supports SFTP — the SSH File Transfer Protocol — which runs over an encrypted SSH connection and is unrelated to FTPS.
-
-Set `FTP_PROTOCOL=sftp` to switch the server into SFTP mode. The default port changes to `22`.
-
-### Authentication
-
-SFTP supports two authentication methods, chosen automatically:
-
-- **Private key** — if a key is found (see below), it is used for authentication. `FTP_PASSPHRASE` is used to decrypt the key if it is passphrase-protected.
-- **Password** — if no key is found, `FTP_PASSWORD` is used for password authentication.
-
-#### Key discovery
-
-The server looks for a private key in this order:
-
-1. The path or 1Password reference in `FTP_PRIVATE_KEY_PATH` (if set)
-2. `~/.ssh/id_ed25519`
-3. `~/.ssh/id_rsa`
-4. `~/.ssh/id_ecdsa`
-
-#### Reading the key from 1Password
-
-Instead of keeping the private key in a file on disk, you can store it as an SSH Key item in 1Password and point `FTP_PRIVATE_KEY_PATH` at a [secret reference](https://developer.1password.com/docs/cli/secret-references/):
-
-```json
-"FTP_PRIVATE_KEY_PATH": "op://Private/my-server/private key"
-```
-
-Requirements:
-
-- The [1Password CLI](https://developer.1password.com/docs/cli/) (`op`) must be installed and on `PATH`.
-- The CLI must be able to authenticate — either through the 1Password desktop app integration (the first read may trigger a biometric/authorization prompt) or a service account token in `OP_SERVICE_ACCOUNT_TOKEN`.
-
-The key is fetched once per server process and cached in memory, so you are not prompted on every SFTP operation. It is never written to disk.
-
-If your server rejects the key format, append `?ssh-format=openssh` to the reference to force OpenSSH private key format:
-
-```json
-"FTP_PRIVATE_KEY_PATH": "op://Private/my-server/private key?ssh-format=openssh"
-```
-
-### Configuration example
+### SFTP example
 
 ```json
 {
@@ -208,113 +134,122 @@ If your server rejects the key format, append `?ssh-format=openssh` to the refer
 }
 ```
 
-`FTP_PASSPHRASE` and `FTP_USER` both support the `enc:` encrypted format — see [Credential Encryption](#credential-encryption).
+### Configuration options
 
-## Credential Encryption
+| Environment variable | Applies to | Description | Default |
+|---|---|---|---|
+| `FTP_HOST` | all | Server hostname or IP address | `localhost` |
+| `FTP_PORT` | all | Server port | `21` for FTP/FTPS, `22` for SFTP |
+| `FTP_PROTOCOL` | all | `ftp` or `sftp` | `ftp` |
+| `FTP_USER` | all | Username; supports encrypted `enc:` values | `anonymous` |
+| `FTP_PASSWORD` | all | Password; supports encrypted `enc:` values | empty |
+| `FTP_SECURE` | FTP/FTPS only | Enables TLS/FTPS for the FTP client | `false` |
+| `FTP_PRIVATE_KEY_PATH` | SFTP only | SSH private-key path or `op://` 1Password secret reference | auto-detect |
+| `FTP_PASSPHRASE` | SFTP only | SSH private-key passphrase; supports encrypted `enc:` values | empty |
+| `FTP_ENCRYPTION_KEY` | encrypted credentials | 64-character hex AES-256 key. Prefer the OS keychain or a global environment variable for local installs. | disabled |
 
-Storing plaintext passwords in your Claude config file is a security risk. The server supports AES-256-GCM encryption for `FTP_USER`, `FTP_PASSWORD`, and `FTP_PASSPHRASE` so the config only ever contains ciphertext.
+## SFTP authentication
 
-The encryption key itself (`FTP_ENCRYPTION_KEY`) must **never** be stored in the same config file as the encrypted credentials — that would defeat the purpose. Store it in the OS keychain, or global environment variable instead (see below).
+SFTP supports private-key and password authentication.
 
-### 1. Generate an encryption key
+The server looks for a private key in this order:
+
+1. `FTP_PRIVATE_KEY_PATH`, if set
+2. `~/.ssh/id_ed25519`
+3. `~/.ssh/id_rsa`
+4. `~/.ssh/id_ecdsa`
+
+If no key is found, `FTP_PASSWORD` is used.
+
+### Reading an SFTP key from 1Password
+
+`FTP_PRIVATE_KEY_PATH` may contain a 1Password secret reference instead of a filesystem path:
+
+```json
+"FTP_PRIVATE_KEY_PATH": "op://Private/my-server/private key"
+```
+
+Requirements:
+
+- The 1Password CLI (`op`) must be installed and available on `PATH`.
+- The CLI must already be able to authenticate, either through the desktop-app integration or `OP_SERVICE_ACCOUNT_TOKEN`.
+
+The key is resolved lazily, cached in memory for the process, and is not written to disk.
+
+If the SSH server rejects 1Password's default exported key format, request OpenSSH format:
+
+```json
+"FTP_PRIVATE_KEY_PATH": "op://Private/my-server/private key?ssh-format=openssh"
+```
+
+## Credential encryption
+
+`FTP_USER`, `FTP_PASSWORD`, and `FTP_PASSPHRASE` may be stored as AES-256-GCM encrypted values using the `enc:` format.
+
+### Generate an encryption key
 
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-Keep this key secret — treat it like a master password.
-
-### 2. Store the key in the OS keychain (recommended)
-
-After building the project, run the one-time setup script:
+### Store the key in the OS keychain (recommended for local installs)
 
 ```bash
 npm run build
 npm run store-key -- <your-64-char-hex-key>
 ```
 
-This writes the key into the OS keychain (macOS Keychain, Windows Credential Manager, or Linux Secret Service). The server loads it automatically on start-up — no `FTP_ENCRYPTION_KEY` in the config file required.
+The server loads the key from macOS Keychain, Windows Credential Manager, or Linux Secret Service when available.
 
-#### Option B: global environment variable
-
-If you prefer not to use the keychain, export the key from your shell profile (`~/.zshrc`, `~/.bash_profile`, etc.):
+Alternatively, set the key globally in the process environment:
 
 ```bash
 export FTP_ENCRYPTION_KEY=<your-64-char-hex-key>
 ```
 
-This keeps the key out of the per-server config file while still making it available to the server process.
+Do not place `FTP_ENCRYPTION_KEY` beside the encrypted credentials in the same local MCP config unless your deployment environment gives you no separate secret-storage mechanism.
 
-### 3. Encrypt a credential value
+### Encrypt a value
 
 ```bash
 npm run build
 FTP_ENCRYPTION_KEY=<your-64-char-hex-key> npm run encrypt-env -- <plaintext-value>
 ```
 
-If you already stored the key in the keychain or your shell profile, the variable is picked up automatically:
+If the key is already available from the OS keychain or shell environment:
 
 ```bash
 npm run encrypt-env -- <plaintext-value>
 ```
 
-The output is a self-contained encrypted string in the format `enc:<iv_hex>:<tag_hex>:<ciphertext_hex>`.
+## Available tools
 
-### 4. Use the encrypted values in your config
+| Tool | Description |
+|---|---|
+| `list-directory` | List contents of a remote directory |
+| `download-file` | Download a file; binary content is returned as base64 |
+| `upload-file` | Upload text or base64-encoded binary content |
+| `create-directory` | Create a directory |
+| `delete-file` | Delete a file |
+| `delete-directory` | Delete a directory |
+| `rename-file` | Rename or move a file or directory |
+| `edit-file` | Replace exact text in a remote text file |
+| `append-file` | Append content to a file, creating it if needed |
 
-Place only the encrypted credentials in the config. **Do not add `FTP_ENCRYPTION_KEY` here** — the server retrieves it from the keychain or your shell environment.
+## Security notes
 
-```json
-{
-  "mcpServers": {
-    "ftp-server": {
-      "command": "node",
-      "args": ["/absolute/path/to/mcp-server-ftp/build/index.js"],
-      "env": {
-        "FTP_HOST": "ftp.example.com",
-        "FTP_PORT": "21",
-        "FTP_USER": "enc:aabbcc...:ddeeff...:112233...",
-        "FTP_PASSWORD": "enc:aabbcc...:ddeeff...:112233...",
-        "FTP_SECURE": "false"
-      }
-    }
-  }
-}
-```
+- Prefer SFTP when available; it uses SSH encryption and key authentication without FTPS certificate configuration.
+- Use `FTP_SECURE=true` only for FTPS servers using the FTP protocol path.
+- Use credential encryption when a client configuration would otherwise contain plaintext credentials.
+- FTP transfers use short-lived local temporary files for upload/download/append operations and remove them in `finally` cleanup paths.
+- SFTP transfers are handled in memory.
 
-Values that do not start with `enc:` are treated as plaintext, so you can encrypt selectively.
+## Troubleshooting Windows builds
 
-## Usage
-
-After configuring and restarting Claude for Desktop, you can use natural language to perform FTP operations:
-
-- "List the files in the /public directory on my FTP server"
-- "Download the file /data/report.txt from the FTP server"
-- "Upload this text as a file called notes.txt to the FTP server"
-- "Create a new directory called 'backups' on the FTP server"
-- "Delete the file obsolete.txt from the FTP server"
-- "Remove the empty directory /old-project from the FTP server"
-
-## Available Tools
-
-| Tool Name | Description |
-|-----------|-------------|
-| `list-directory` | List contents of an FTP directory |
-| `download-file` | Download a file from the FTP server (binary files are returned base64-encoded) |
-| `upload-file` | Upload a file to the FTP server (pass `encoding: "base64"` for binary content) |
-| `create-directory` | Create a new directory on the FTP server |
-| `delete-file` | Delete a file from the FTP server |
-| `delete-directory` | Delete a directory from the FTP server |
-| `rename-file` | Rename or move a file or directory on the FTP server |
-| `edit-file` | Replace an exact string in a text file without re-uploading the whole file content |
-| `append-file` | Append content to a file (creates it if missing) |
-
-## Security Considerations
-
-- Use the [Credential Encryption](#credential-encryption) feature to avoid storing plaintext passwords in your config file.
-- Prefer SFTP (`FTP_PROTOCOL=sftp`) over plain FTP or FTPS where possible — it uses SSH and does not require certificate management.
-- Consider using FTPS (secure FTP) by setting `FTP_SECURE=true` if your server supports it but SFTP is unavailable.
-- The server creates temporary files for uploads and downloads in your system's temp directory.
+1. Confirm Node.js 18.14 or newer and npm are installed.
+2. Run `npm install`.
+3. Run `npm run build` or `npx tsc`.
+4. Start the compiled server with `node build/index.js`.
 
 ## License
 
