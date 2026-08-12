@@ -11,8 +11,7 @@ startCommand:
         description: FTP/FTPS/SFTP server hostname or IP address.
       ftpPort:
         type: number
-        default: 21
-        description: Server port. Defaults to 21 for FTP/FTPS; use 22 for SFTP unless the server uses a custom port.
+        description: Server port. If omitted, FTP/FTPS uses 21 and SFTP uses 22.
       ftpUser:
         type: string
         default: anonymous
