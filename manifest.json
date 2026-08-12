@@ -15,21 +15,13 @@
   },
   "homepage": "https://github.com/alxspiker/mcp-server-ftp",
   "license": "MIT",
-  "keywords": [
-    "ftp",
-    "sftp",
-    "ftps",
-    "files",
-    "transfer"
-  ],
+  "keywords": ["ftp", "sftp", "ftps", "files", "transfer"],
   "server": {
     "type": "node",
     "entry_point": "build/index.js",
     "mcp_config": {
       "command": "node",
-      "args": [
-        "${__dirname}/build/index.js"
-      ],
+      "args": ["${__dirname}/build/index.js"],
       "env": {
         "FTP_HOST": "${user_config.ftp_host}",
         "FTP_PORT": "${user_config.ftp_port}",
@@ -54,8 +46,8 @@
     "ftp_port": {
       "type": "string",
       "title": "Port",
-      "description": "Server port (21 for FTP/FTPS, 22 for SFTP unless the server uses a custom port)",
-      "default": "21",
+      "description": "Server port. Leave empty to use 21 for FTP/FTPS or 22 for SFTP.",
+      "default": "",
       "required": false
     },
     "ftp_user": {
@@ -114,438 +106,213 @@
   "tools": [
     {
       "name": "list-directory",
-      "description": "List contents of an FTP directory",
+      "description": "List contents of a remote directory",
       "inputSchema": {
         "type": "object",
         "properties": {
-          "remotePath": {
-            "type": "string",
-            "description": "Path of the directory on the FTP server"
-          }
+          "remotePath": {"type": "string", "description": "Path of the directory on the remote server"}
         },
-        "required": [
-          "remotePath"
-        ]
+        "required": ["remotePath"]
       },
       "outputSchema": {
         "type": "object",
         "properties": {
-          "path": {
-            "type": "string"
-          },
+          "path": {"type": "string"},
           "entries": {
             "type": "array",
             "items": {
               "type": "object",
               "properties": {
-                "name": {
-                  "type": "string"
-                },
-                "type": {
-                  "type": "string"
-                },
-                "size": {
-                  "type": "number"
-                },
-                "modifiedDate": {
-                  "type": "string"
-                }
+                "name": {"type": "string"},
+                "type": {"type": "string"},
+                "size": {"type": "number"},
+                "modifiedDate": {"type": "string"}
               },
-              "required": [
-                "name",
-                "type",
-                "size",
-                "modifiedDate"
-              ]
+              "required": ["name", "type", "size", "modifiedDate"]
             }
           },
-          "totalCount": {
-            "type": "number"
-          },
-          "directoryCount": {
-            "type": "number"
-          },
-          "fileCount": {
-            "type": "number"
-          }
+          "totalCount": {"type": "number"},
+          "directoryCount": {"type": "number"},
+          "fileCount": {"type": "number"}
         },
-        "required": [
-          "path",
-          "entries",
-          "totalCount",
-          "directoryCount",
-          "fileCount"
-        ]
+        "required": ["path", "entries", "totalCount", "directoryCount", "fileCount"]
       },
-      "annotations": {
-        "readOnlyHint": true,
-        "openWorldHint": false
-      }
+      "annotations": {"readOnlyHint": true, "openWorldHint": false}
     },
     {
       "name": "download-file",
-      "description": "Download a file from the FTP server (binary files returned base64-encoded)",
+      "description": "Download a remote file; binary files are returned base64-encoded",
       "inputSchema": {
         "type": "object",
         "properties": {
-          "remotePath": {
-            "type": "string",
-            "description": "Path of the file on the FTP server"
-          }
+          "remotePath": {"type": "string", "description": "Path of the file on the remote server"}
         },
-        "required": [
-          "remotePath"
-        ]
+        "required": ["remotePath"]
       },
       "outputSchema": {
         "type": "object",
         "properties": {
-          "remotePath": {
-            "type": "string"
-          },
-          "content": {
-            "type": "string"
-          },
-          "encoding": {
-            "type": "string",
-            "enum": [
-              "utf8",
-              "base64"
-            ]
-          }
+          "remotePath": {"type": "string"},
+          "content": {"type": "string"},
+          "encoding": {"type": "string", "enum": ["utf8", "base64"]}
         },
-        "required": [
-          "remotePath",
-          "content",
-          "encoding"
-        ]
+        "required": ["remotePath", "content", "encoding"]
       },
-      "annotations": {
-        "readOnlyHint": true,
-        "openWorldHint": false
-      }
+      "annotations": {"readOnlyHint": true, "openWorldHint": false}
     },
     {
       "name": "upload-file",
-      "description": "Upload a file to the FTP server (supports base64 for binary content)",
+      "description": "Upload a remote file; supports base64 for binary content",
       "inputSchema": {
         "type": "object",
         "properties": {
-          "remotePath": {
-            "type": "string",
-            "description": "Destination path on the FTP server"
-          },
-          "content": {
-            "type": "string",
-            "description": "Content to upload to the file"
-          },
-          "encoding": {
-            "type": "string",
-            "enum": [
-              "utf8",
-              "base64"
-            ],
-            "description": "Encoding of the provided content (default: utf8)"
-          }
+          "remotePath": {"type": "string", "description": "Destination path on the remote server"},
+          "content": {"type": "string", "description": "Content to upload"},
+          "encoding": {"type": "string", "enum": ["utf8", "base64"], "description": "Encoding of the provided content (default: utf8)"}
         },
-        "required": [
-          "remotePath",
-          "content"
-        ]
+        "required": ["remotePath", "content"]
       },
       "outputSchema": {
         "type": "object",
         "properties": {
-          "remotePath": {
-            "type": "string"
-          },
-          "bytesWritten": {
-            "type": "number"
-          }
+          "remotePath": {"type": "string"},
+          "bytesWritten": {"type": "number"}
         },
-        "required": [
-          "remotePath",
-          "bytesWritten"
-        ]
+        "required": ["remotePath", "bytesWritten"]
       },
-      "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": true,
-        "idempotentHint": true,
-        "openWorldHint": false
-      }
+      "annotations": {"readOnlyHint": false, "destructiveHint": true, "idempotentHint": true, "openWorldHint": false}
     },
     {
       "name": "edit-file",
-      "description": "Replace an exact string in a remote text file without re-uploading the whole file",
+      "description": "Replace exact text in a remote text file",
       "inputSchema": {
         "type": "object",
         "properties": {
-          "remotePath": {
-            "type": "string",
-            "description": "Path of the file on the FTP server"
-          },
-          "oldText": {
-            "type": "string",
-            "description": "Exact text to find in the file"
-          },
-          "newText": {
-            "type": "string",
-            "description": "Text to replace it with"
-          },
-          "replaceAll": {
-            "type": "boolean",
-            "description": "Replace every occurrence instead of requiring oldText to be unique (default: false)"
-          }
+          "remotePath": {"type": "string", "description": "Path of the file on the remote server"},
+          "oldText": {"type": "string", "description": "Exact text to find"},
+          "newText": {"type": "string", "description": "Replacement text"},
+          "replaceAll": {"type": "boolean", "description": "Replace every occurrence instead of requiring oldText to be unique (default: false)"}
         },
-        "required": [
-          "remotePath",
-          "oldText",
-          "newText"
-        ]
+        "required": ["remotePath", "oldText", "newText"]
       },
       "outputSchema": {
         "type": "object",
         "properties": {
-          "remotePath": {
-            "type": "string"
-          },
-          "replacements": {
-            "type": "number"
-          },
-          "fileSize": {
-            "type": "number"
-          }
+          "remotePath": {"type": "string"},
+          "replacements": {"type": "number"},
+          "fileSize": {"type": "number"}
         },
-        "required": [
-          "remotePath",
-          "replacements",
-          "fileSize"
-        ]
+        "required": ["remotePath", "replacements", "fileSize"]
       },
-      "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": true,
-        "idempotentHint": false,
-        "openWorldHint": false
-      }
+      "annotations": {"readOnlyHint": false, "destructiveHint": true, "idempotentHint": false, "openWorldHint": false}
     },
     {
       "name": "append-file",
-      "description": "Append content to a file, creating it if missing",
+      "description": "Append content to a remote file, creating it if missing",
       "inputSchema": {
         "type": "object",
         "properties": {
-          "remotePath": {
-            "type": "string",
-            "description": "Path of the file on the FTP server"
-          },
-          "content": {
-            "type": "string",
-            "description": "Content to append to the file"
-          },
-          "encoding": {
-            "type": "string",
-            "enum": [
-              "utf8",
-              "base64"
-            ],
-            "description": "Encoding of the provided content (default: utf8)"
-          }
+          "remotePath": {"type": "string", "description": "Path of the file on the remote server"},
+          "content": {"type": "string", "description": "Content to append"},
+          "encoding": {"type": "string", "enum": ["utf8", "base64"], "description": "Encoding of the provided content (default: utf8)"}
         },
-        "required": [
-          "remotePath",
-          "content"
-        ]
+        "required": ["remotePath", "content"]
       },
       "outputSchema": {
         "type": "object",
         "properties": {
-          "remotePath": {
-            "type": "string"
-          },
-          "appendedBytes": {
-            "type": "number"
-          }
+          "remotePath": {"type": "string"},
+          "appendedBytes": {"type": "number"}
         },
-        "required": [
-          "remotePath",
-          "appendedBytes"
-        ]
+        "required": ["remotePath", "appendedBytes"]
       },
-      "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": false,
-        "idempotentHint": false,
-        "openWorldHint": false
-      }
+      "annotations": {"readOnlyHint": false, "destructiveHint": false, "idempotentHint": false, "openWorldHint": false}
     },
     {
       "name": "rename-file",
-      "description": "Rename or move a file or directory",
+      "description": "Rename or move a remote file or directory",
       "inputSchema": {
         "type": "object",
         "properties": {
-          "fromPath": {
-            "type": "string",
-            "description": "Current path of the file or directory"
-          },
-          "toPath": {
-            "type": "string",
-            "description": "New path for the file or directory"
-          }
+          "fromPath": {"type": "string", "description": "Current path of the file or directory"},
+          "toPath": {"type": "string", "description": "New path for the file or directory"}
         },
-        "required": [
-          "fromPath",
-          "toPath"
-        ]
+        "required": ["fromPath", "toPath"]
       },
       "outputSchema": {
         "type": "object",
         "properties": {
-          "fromPath": {
-            "type": "string"
-          },
-          "toPath": {
-            "type": "string"
-          },
-          "renamed": {
-            "type": "boolean"
-          }
+          "fromPath": {"type": "string"},
+          "toPath": {"type": "string"},
+          "renamed": {"type": "boolean"}
         },
-        "required": [
-          "fromPath",
-          "toPath",
-          "renamed"
-        ]
+        "required": ["fromPath", "toPath", "renamed"]
       },
-      "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": true,
-        "idempotentHint": false,
-        "openWorldHint": false
-      }
+      "annotations": {"readOnlyHint": false, "destructiveHint": true, "idempotentHint": false, "openWorldHint": false}
     },
     {
       "name": "create-directory",
-      "description": "Create a new directory",
+      "description": "Create a remote directory",
       "inputSchema": {
         "type": "object",
         "properties": {
-          "remotePath": {
-            "type": "string",
-            "description": "Path of the directory to create"
-          }
+          "remotePath": {"type": "string", "description": "Path of the directory to create"}
         },
-        "required": [
-          "remotePath"
-        ]
+        "required": ["remotePath"]
       },
       "outputSchema": {
         "type": "object",
         "properties": {
-          "remotePath": {
-            "type": "string"
-          },
-          "created": {
-            "type": "boolean"
-          }
+          "remotePath": {"type": "string"},
+          "created": {"type": "boolean"}
         },
-        "required": [
-          "remotePath",
-          "created"
-        ]
+        "required": ["remotePath", "created"]
       },
-      "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": false
-      }
+      "annotations": {"readOnlyHint": false, "destructiveHint": false, "idempotentHint": true, "openWorldHint": false}
     },
     {
       "name": "delete-file",
-      "description": "Delete a file",
+      "description": "Delete a remote file",
       "inputSchema": {
         "type": "object",
         "properties": {
-          "remotePath": {
-            "type": "string",
-            "description": "Path of the file to delete"
-          }
+          "remotePath": {"type": "string", "description": "Path of the file to delete"}
         },
-        "required": [
-          "remotePath"
-        ]
+        "required": ["remotePath"]
       },
       "outputSchema": {
         "type": "object",
         "properties": {
-          "remotePath": {
-            "type": "string"
-          },
-          "deleted": {
-            "type": "boolean"
-          }
+          "remotePath": {"type": "string"},
+          "deleted": {"type": "boolean"}
         },
-        "required": [
-          "remotePath",
-          "deleted"
-        ]
+        "required": ["remotePath", "deleted"]
       },
-      "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": true,
-        "idempotentHint": true,
-        "openWorldHint": false
-      }
+      "annotations": {"readOnlyHint": false, "destructiveHint": true, "idempotentHint": true, "openWorldHint": false}
     },
     {
       "name": "delete-directory",
-      "description": "Delete a directory",
+      "description": "Delete a remote directory",
       "inputSchema": {
         "type": "object",
         "properties": {
-          "remotePath": {
-            "type": "string",
-            "description": "Path of the directory to delete"
-          }
+          "remotePath": {"type": "string", "description": "Path of the directory to delete"}
         },
-        "required": [
-          "remotePath"
-        ]
+        "required": ["remotePath"]
       },
       "outputSchema": {
         "type": "object",
         "properties": {
-          "remotePath": {
-            "type": "string"
-          },
-          "deleted": {
-            "type": "boolean"
-          }
+          "remotePath": {"type": "string"},
+          "deleted": {"type": "boolean"}
         },
-        "required": [
-          "remotePath",
-          "deleted"
-        ]
+        "required": ["remotePath", "deleted"]
       },
-      "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": true,
-        "idempotentHint": true,
-        "openWorldHint": false
-      }
+      "annotations": {"readOnlyHint": false, "destructiveHint": true, "idempotentHint": true, "openWorldHint": false}
     }
   ],
   "compatibility": {
-    "platforms": [
-      "darwin",
-      "win32",
-      "linux"
-    ],
-    "runtimes": {
-      "node": ">=18.14.0"
-    }
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": {"node": ">=18.14.0"}
   }
 }
