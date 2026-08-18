@@ -4,89 +4,81 @@ startCommand:
   type: stdio
   configSchema:
     type: object
-    required:
-      - ftpHost
-      - ftpPort
-      - ftpUser
-      - ftpPassword
-      - ftpSecure
     properties:
       ftpHost:
         type: string
         default: localhost
-        description: FTP server hostname or IP address
+        description: FTP/FTPS/SFTP server hostname or IP address.
       ftpPort:
         type: number
-        default: 21
-        description: FTP server port
+        description: Server port. If omitted, FTP/FTPS uses 21 and SFTP uses 22.
       ftpUser:
         type: string
         default: anonymous
         description: >
-          FTP username. May be an encrypted value (enc:<iv_hex>:<tag_hex>:<ciphertext_hex>)
-          when ftpEncryptionKey is provided.
+          FTP/FTPS/SFTP username. May be an encrypted value
+          (enc:<iv_hex>:<tag_hex>:<ciphertext_hex>) when an encryption key is available.
       ftpPassword:
         type: string
         format: password
         default: ""
         description: >
-          FTP password. Supports encrypted values (enc:<iv_hex>:<tag_hex>:<ciphertext_hex>)
-          when ftpEncryptionKey is provided. Encrypt using the encrypt-env script.
-      ftpEncryptionKey:
-        type: string
-        format: password
-        description: >
-          Optional 64-character hex AES-256 key used to decrypt ftpPassword and
-          ftpUser at runtime. Generate with:
-          node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-      ftpSecure:
-        type: boolean
-        default: false
-        description: Use secure FTP (FTPS). Ignored when ftpProtocol is sftp.
+          FTP/FTPS/SFTP password. Supports encrypted values
+          (enc:<iv_hex>:<tag_hex>:<ciphertext_hex>).
       ftpProtocol:
         type: string
         enum: [ftp, sftp]
         default: ftp
         description: >
-          Protocol to use. "ftp" uses basic-ftp (port 21 default, FTPS optional).
-          "sftp" uses SSH File Transfer Protocol (port 22 default, key auth automatic).
+          Connection protocol. "ftp" uses basic-ftp and can optionally enable TLS/FTPS;
+          "sftp" uses SSH File Transfer Protocol and is always encrypted over SSH.
+      ftpSecure:
+        type: boolean
+        default: false
+        description: >
+          Enable TLS/FTPS when ftpProtocol is "ftp". This setting is not used for SFTP,
+          because SFTP is already encrypted over SSH.
       ftpPrivateKeyPath:
         type: string
         default: ""
         description: >
-          Path to SSH private key for SFTP (e.g. ~/.ssh/id_ed25519).
-          Leave empty to auto-detect from ~/.ssh/id_ed25519, ~/.ssh/id_rsa, or ~/.ssh/id_ecdsa.
+          SFTP private-key path (for example ~/.ssh/id_ed25519) or a 1Password
+          op:// secret reference. Leave empty to auto-detect common ~/.ssh keys.
       ftpPassphrase:
         type: string
         format: password
         default: ""
         description: >
-          Passphrase for the SSH private key (SFTP only). Supports encrypted values
-          (enc:<iv>:<tag>:<ciphertext>) when ftpEncryptionKey is provided.
+          Passphrase for the SFTP private key. Supports encrypted enc: values.
+      ftpEncryptionKey:
+        type: string
+        format: password
+        description: >
+          Optional 64-character hex AES-256 key for decrypting enc: credentials.
+          For local installs, prefer the OS keychain or a global environment variable
+          instead of storing this alongside encrypted credentials.
   commandFunction:
     |-
     (config) => ({
       command: 'node',
       args: ['build/index.js'],
       env: {
-        FTP_HOST: config.ftpHost,
-        FTP_PORT: String(config.ftpPort),
-        FTP_USER: config.ftpUser,
-        FTP_PASSWORD: config.ftpPassword,
-        FTP_SECURE: String(config.ftpSecure),
+        FTP_HOST: config.ftpHost || 'localhost',
+        FTP_PORT: String(config.ftpPort ?? (config.ftpProtocol === 'sftp' ? 22 : 21)),
+        FTP_USER: config.ftpUser || 'anonymous',
+        FTP_PASSWORD: config.ftpPassword || '',
         FTP_PROTOCOL: config.ftpProtocol || 'ftp',
+        ...(config.ftpProtocol !== 'sftp' && config.ftpSecure ? { FTP_SECURE: 'true' } : {}),
         ...(config.ftpPrivateKeyPath ? { FTP_PRIVATE_KEY_PATH: config.ftpPrivateKeyPath } : {}),
         ...(config.ftpPassphrase ? { FTP_PASSPHRASE: config.ftpPassphrase } : {}),
         ...(config.ftpEncryptionKey ? { FTP_ENCRYPTION_KEY: config.ftpEncryptionKey } : {})
       }
     })
   exampleConfig:
-    ftpHost: ftp.example.com
+    ftpHost: sftp.example.com
     ftpPort: 22
     ftpUser: your-username
     ftpPassword: ""
-    ftpSecure: false
     ftpProtocol: sftp
     ftpPrivateKeyPath: ""
     ftpPassphrase: ""
-    ftpEncryptionKey: ""
