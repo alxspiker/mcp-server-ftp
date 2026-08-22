@@ -72,7 +72,11 @@ export class SftpClient {
           );
         }
       }
-    } else {
+    } else if (!this.config.password) {
+      // Only auto-detect a default SSH key when no password was configured
+      // either — otherwise an unrelated local key (e.g. a personal GitHub
+      // key at ~/.ssh/id_rsa) silently shadows an explicitly configured
+      // FTP_PASSWORD and gets tried against a host it has nothing to do with.
       for (const p of DEFAULT_KEY_PATHS) {
         privateKey = resolvePrivateKey(p);
         if (privateKey) break;
