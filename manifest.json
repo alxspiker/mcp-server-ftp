@@ -2,7 +2,7 @@
   "manifest_version": "0.2",
   "name": "mcp-server-ftp",
   "display_name": "FTP Access Server",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "MCP server for FTP, FTPS, and SFTP access: list, download, upload, edit, append, rename, and delete files and directories on remote servers.",
   "long_description": "Interact with FTP, FTPS, and SFTP servers using natural language. Supports binary-safe file transfers, in-place text edits, appends, renames, directory management, FTPS/TLS, SFTP password or SSH key authentication, and AES-256-GCM encrypted credentials with OS keychain support for the encryption key.",
   "author": {
