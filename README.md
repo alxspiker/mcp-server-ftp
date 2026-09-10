@@ -236,7 +236,7 @@ npm run encrypt-env -- <plaintext-value>
 | `edit-file` | Replace exact text in a remote text file |
 | `append-file` | Append content to a file, creating it if needed |
 
-Tool calls continue to return machine-readable `structuredContent`. Runtime `outputSchema` declarations are temporarily omitted for compatibility with MCP clients that require JSON Schema 2020-12.
+Tool calls return machine-readable `structuredContent`, and all nine tools advertise output schemas. Version 1.2.2 includes a compatibility shim that ensures advertised schemas use the JSON Schema 2020-12 dialect required by current MCP clients.
 
 ## Security notes
 
