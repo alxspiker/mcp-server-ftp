@@ -1,6 +1,6 @@
 {
   "name": "mcp-server-ftp",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Model Context Protocol server for FTP access",
   "main": "build/index.js",
   "type": "module",
