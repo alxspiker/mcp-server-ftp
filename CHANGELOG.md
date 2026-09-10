@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 1.2.2 — 2026-09-10
+
+### Fixed
+- Preserve all nine advertised `outputSchema` definitions while rewriting the SDK's draft-07 `$schema` URI to JSON Schema 2020-12 on stdio responses. This keeps structured output metadata available to clients such as Smithery while avoiding rejection by clients that require 2020-12.
+
 ## 1.2.1 — 2026-08-07
 
 ### Added

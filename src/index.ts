@@ -32,7 +32,7 @@ let ftpClient: AnyFtpClient;
 // Create server instance
 const server = new McpServer({
   name: "mcp-server-ftp",
-  version: "1.2.1",
+  version: "1.2.2",
 });
 
 // The MCP SDK dispatches tool calls concurrently, but concurrent FTP operations
@@ -63,13 +63,6 @@ function errorResult(prefix: string, error: unknown) {
   };
 }
 
-const fileEntrySchema = z.object({
-  name: z.string(),
-  type: z.string(),
-  size: z.number(),
-  modifiedDate: z.string(),
-});
-
 // Register list-directory tool
 server.registerTool(
   "list-directory",
@@ -78,13 +71,6 @@ server.registerTool(
     description: "List contents of an FTP directory",
     inputSchema: {
       remotePath: z.string().describe("Path of the directory on the FTP server"),
-    },
-    outputSchema: {
-      path: z.string().describe("The directory that was listed"),
-      entries: z.array(fileEntrySchema).describe("Directory entries"),
-      totalCount: z.number(),
-      directoryCount: z.number(),
-      fileCount: z.number(),
     },
     annotations: { readOnlyHint: true, openWorldHint: false },
   },
@@ -131,11 +117,6 @@ server.registerTool(
     inputSchema: {
       remotePath: z.string().describe("Path of the file on the FTP server"),
     },
-    outputSchema: {
-      remotePath: z.string(),
-      content: z.string().describe("File content, encoded per the encoding field"),
-      encoding: z.enum(["utf8", "base64"]).describe("utf8 for text files, base64 for binary files"),
-    },
     annotations: { readOnlyHint: true, openWorldHint: false },
   },
   serialized(async ({ remotePath }) => {
@@ -172,10 +153,6 @@ server.registerTool(
       content: z.string().describe("Content to upload to the file"),
       encoding: z.enum(["utf8", "base64"]).optional().describe("Encoding of the provided content (default: utf8)"),
     },
-    outputSchema: {
-      remotePath: z.string(),
-      bytesWritten: z.number(),
-    },
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
   },
   serialized(async ({ remotePath, content, encoding }) => {
@@ -207,10 +184,6 @@ server.registerTool(
     inputSchema: {
       remotePath: z.string().describe("Path of the directory to create"),
     },
-    outputSchema: {
-      remotePath: z.string(),
-      created: z.boolean(),
-    },
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   },
   serialized(async ({ remotePath }) => {
@@ -240,10 +213,6 @@ server.registerTool(
     description: "Delete a file from the FTP server",
     inputSchema: {
       remotePath: z.string().describe("Path of the file to delete"),
-    },
-    outputSchema: {
-      remotePath: z.string(),
-      deleted: z.boolean(),
     },
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
   },
@@ -275,10 +244,6 @@ server.registerTool(
     inputSchema: {
       remotePath: z.string().describe("Path of the directory to delete"),
     },
-    outputSchema: {
-      remotePath: z.string(),
-      deleted: z.boolean(),
-    },
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
   },
   serialized(async ({ remotePath }) => {
@@ -309,11 +274,6 @@ server.registerTool(
     inputSchema: {
       fromPath: z.string().describe("Current path of the file or directory"),
       toPath: z.string().describe("New path for the file or directory"),
-    },
-    outputSchema: {
-      fromPath: z.string(),
-      toPath: z.string(),
-      renamed: z.boolean(),
     },
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
   },
@@ -347,11 +307,6 @@ server.registerTool(
       oldText: z.string().describe("Exact text to find in the file"),
       newText: z.string().describe("Text to replace it with"),
       replaceAll: z.boolean().optional().describe("Replace every occurrence instead of requiring oldText to be unique (default: false)"),
-    },
-    outputSchema: {
-      remotePath: z.string(),
-      replacements: z.number().describe("Number of occurrences replaced"),
-      fileSize: z.number().describe("Size of the file in bytes after the edit"),
     },
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
   },
@@ -415,10 +370,6 @@ server.registerTool(
       remotePath: z.string().describe("Path of the file on the FTP server"),
       content: z.string().describe("Content to append to the file"),
       encoding: z.enum(["utf8", "base64"]).optional().describe("Encoding of the provided content (default: utf8)"),
-    },
-    outputSchema: {
-      remotePath: z.string(),
-      appendedBytes: z.number(),
     },
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
   },
