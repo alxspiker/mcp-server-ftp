@@ -25,14 +25,22 @@ function resolveProtocol(raw: string | undefined): ConnectionType {
   );
 }
 
+// Client initialized inside main() so decryption/config errors are caught gracefully
 type AnyFtpClient = FtpClient | SftpClient;
 let ftpClient: AnyFtpClient;
 
+// Create server instance
 const server = new McpServer({
   name: "mcp-server-ftp",
   version: "1.2.2",
 });
 
+// The MCP SDK dispatches tool calls concurrently, but concurrent FTP operations
+// race each other (read-modify-write edits can silently lose updates, and many
+// FTP servers cap simultaneous connections). Queue every tool call so each
+// operation runs to completion before the next starts. Note this makes
+// operations atomic but does not guarantee ordering between calls issued in
+// parallel — clients needing ordering must await each result before the next call.
 let operationQueue: Promise<unknown> = Promise.resolve();
 function serialized<Args extends unknown[], R>(handler: (...args: Args) => Promise<R>): (...args: Args) => Promise<R> {
   return (...args: Args) => {
@@ -55,6 +63,7 @@ function errorResult(prefix: string, error: unknown) {
   };
 }
 
+// Register list-directory tool
 server.registerTool(
   "list-directory",
   {
@@ -68,15 +77,30 @@ server.registerTool(
   serialized(async ({ remotePath }) => {
     try {
       const listing = await ftpClient.listDirectory(remotePath);
+
+      // Format the output
       const formatted = listing.map((item) =>
         `${item.type === "directory" ? "[DIR]" : "[FILE]"} ${item.name} ${item.type === "file" ? `(${formatSize(item.size)})` : ""} - ${item.modifiedDate}`
       ).join("\n");
+
       const directoryCount = listing.filter(i => i.type === "directory").length;
       const fileCount = listing.filter(i => i.type === "file").length;
       const summary = `Total: ${listing.length} items (${directoryCount} directories, ${fileCount} files)`;
+
       return {
-        content: [{ type: "text" as const, text: `Directory listing for: ${remotePath}\n\n${formatted}\n\n${summary}` }],
-        structuredContent: { path: remotePath, entries: listing, totalCount: listing.length, directoryCount, fileCount },
+        content: [
+          {
+            type: "text" as const,
+            text: `Directory listing for: ${remotePath}\n\n${formatted}\n\n${summary}`
+          }
+        ],
+        structuredContent: {
+          path: remotePath,
+          entries: listing,
+          totalCount: listing.length,
+          directoryCount,
+          fileCount,
+        },
       };
     } catch (error) {
       return errorResult("Error listing directory", error);
@@ -84,20 +108,32 @@ server.registerTool(
   })
 );
 
+// Register download-file tool
 server.registerTool(
   "download-file",
   {
     title: "Download File",
     description: "Download a file from the FTP server. Text files are returned as-is; binary files are returned base64-encoded.",
-    inputSchema: { remotePath: z.string().describe("Path of the file on the FTP server") },
+    inputSchema: {
+      remotePath: z.string().describe("Path of the file on the FTP server"),
+    },
     annotations: { readOnlyHint: true, openWorldHint: false },
   },
   serialized(async ({ remotePath }) => {
     try {
       const { content, encoding } = await ftpClient.downloadFile(remotePath);
-      const header = encoding === "base64" ? `File content of ${remotePath} (binary, base64-encoded):` : `File content of ${remotePath}:`;
+
+      const header = encoding === "base64"
+        ? `File content of ${remotePath} (binary, base64-encoded):`
+        : `File content of ${remotePath}:`;
+
       return {
-        content: [{ type: "text" as const, text: `${header}\n\n${content}` }],
+        content: [
+          {
+            type: "text" as const,
+            text: `${header}\n\n${content}`
+          }
+        ],
         structuredContent: { remotePath, content, encoding },
       };
     } catch (error) {
@@ -106,6 +142,7 @@ server.registerTool(
   })
 );
 
+// Register upload-file tool
 server.registerTool(
   "upload-file",
   {
@@ -122,8 +159,14 @@ server.registerTool(
     try {
       const enc = encoding ?? "utf8";
       await ftpClient.uploadFile(remotePath, content, enc);
+
       return {
-        content: [{ type: "text" as const, text: `File successfully uploaded to ${remotePath}` }],
+        content: [
+          {
+            type: "text" as const,
+            text: `File successfully uploaded to ${remotePath}`
+          }
+        ],
         structuredContent: { remotePath, bytesWritten: Buffer.byteLength(content, enc) },
       };
     } catch (error) {
@@ -132,19 +175,28 @@ server.registerTool(
   })
 );
 
+// Register create-directory tool
 server.registerTool(
   "create-directory",
   {
     title: "Create Directory",
     description: "Create a new directory on the FTP server",
-    inputSchema: { remotePath: z.string().describe("Path of the directory to create") },
+    inputSchema: {
+      remotePath: z.string().describe("Path of the directory to create"),
+    },
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   },
   serialized(async ({ remotePath }) => {
     try {
       await ftpClient.createDirectory(remotePath);
+
       return {
-        content: [{ type: "text" as const, text: `Directory successfully created at ${remotePath}` }],
+        content: [
+          {
+            type: "text" as const,
+            text: `Directory successfully created at ${remotePath}`
+          }
+        ],
         structuredContent: { remotePath, created: true },
       };
     } catch (error) {
@@ -153,19 +205,28 @@ server.registerTool(
   })
 );
 
+// Register delete-file tool
 server.registerTool(
   "delete-file",
   {
     title: "Delete File",
     description: "Delete a file from the FTP server",
-    inputSchema: { remotePath: z.string().describe("Path of the file to delete") },
+    inputSchema: {
+      remotePath: z.string().describe("Path of the file to delete"),
+    },
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
   },
   serialized(async ({ remotePath }) => {
     try {
       await ftpClient.deleteFile(remotePath);
+
       return {
-        content: [{ type: "text" as const, text: `File successfully deleted from ${remotePath}` }],
+        content: [
+          {
+            type: "text" as const,
+            text: `File successfully deleted from ${remotePath}`
+          }
+        ],
         structuredContent: { remotePath, deleted: true },
       };
     } catch (error) {
@@ -174,19 +235,28 @@ server.registerTool(
   })
 );
 
+// Register delete-directory tool
 server.registerTool(
   "delete-directory",
   {
     title: "Delete Directory",
     description: "Delete a directory from the FTP server",
-    inputSchema: { remotePath: z.string().describe("Path of the directory to delete") },
+    inputSchema: {
+      remotePath: z.string().describe("Path of the directory to delete"),
+    },
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
   },
   serialized(async ({ remotePath }) => {
     try {
       await ftpClient.deleteDirectory(remotePath);
+
       return {
-        content: [{ type: "text" as const, text: `Directory successfully deleted from ${remotePath}` }],
+        content: [
+          {
+            type: "text" as const,
+            text: `Directory successfully deleted from ${remotePath}`
+          }
+        ],
         structuredContent: { remotePath, deleted: true },
       };
     } catch (error) {
@@ -195,6 +265,7 @@ server.registerTool(
   })
 );
 
+// Register rename-file tool
 server.registerTool(
   "rename-file",
   {
@@ -209,8 +280,14 @@ server.registerTool(
   serialized(async ({ fromPath, toPath }) => {
     try {
       await ftpClient.rename(fromPath, toPath);
+
       return {
-        content: [{ type: "text" as const, text: `Successfully renamed ${fromPath} to ${toPath}` }],
+        content: [
+          {
+            type: "text" as const,
+            text: `Successfully renamed ${fromPath} to ${toPath}`
+          }
+        ],
         structuredContent: { fromPath, toPath, renamed: true },
       };
     } catch (error) {
@@ -219,6 +296,7 @@ server.registerTool(
   })
 );
 
+// Register edit-file tool
 server.registerTool(
   "edit-file",
   {
@@ -234,24 +312,46 @@ server.registerTool(
   },
   serialized(async ({ remotePath, oldText, newText, replaceAll }) => {
     try {
-      if (oldText === "") return errorResult("Error editing file", new Error("oldText must not be empty"));
-      if (oldText === newText) return errorResult("Error editing file", new Error("oldText and newText are identical; nothing to change"));
+      if (oldText === "") {
+        return errorResult("Error editing file", new Error("oldText must not be empty"));
+      }
+      if (oldText === newText) {
+        return errorResult("Error editing file", new Error("oldText and newText are identical; nothing to change"));
+      }
+
       const { content, encoding } = await ftpClient.downloadFile(remotePath);
       if (encoding === "base64") {
-        return errorResult("Error editing file", new Error(`${remotePath} is a binary file and cannot be text-edited. Use download-file/upload-file with base64 encoding instead.`));
+        return errorResult(
+          "Error editing file",
+          new Error(`${remotePath} is a binary file and cannot be text-edited. Use download-file/upload-file with base64 encoding instead.`)
+        );
       }
+
       const occurrences = content.split(oldText).length - 1;
       if (occurrences === 0) {
-        return errorResult("Error editing file", new Error(`oldText not found in ${remotePath}. It must match the file content exactly, including whitespace and line breaks.`));
+        return errorResult(
+          "Error editing file",
+          new Error(`oldText not found in ${remotePath}. It must match the file content exactly, including whitespace and line breaks.`)
+        );
       }
       if (occurrences > 1 && !replaceAll) {
-        return errorResult("Error editing file", new Error(`oldText matches ${occurrences} places in ${remotePath}. Include more surrounding context to make it unique, or set replaceAll to true.`));
+        return errorResult(
+          "Error editing file",
+          new Error(`oldText matches ${occurrences} places in ${remotePath}. Include more surrounding context to make it unique, or set replaceAll to true.`)
+        );
       }
+
       const updated = replaceAll ? content.split(oldText).join(newText) : content.replace(oldText, newText);
       await ftpClient.uploadFile(remotePath, updated, "utf8");
       const fileSize = Buffer.byteLength(updated, "utf8");
+
       return {
-        content: [{ type: "text" as const, text: `Successfully edited ${remotePath}: replaced ${occurrences} occurrence${occurrences === 1 ? "" : "s"} (file is now ${formatSize(fileSize)})` }],
+        content: [
+          {
+            type: "text" as const,
+            text: `Successfully edited ${remotePath}: replaced ${occurrences} occurrence${occurrences === 1 ? "" : "s"} (file is now ${formatSize(fileSize)})`
+          }
+        ],
         structuredContent: { remotePath, replacements: occurrences, fileSize },
       };
     } catch (error) {
@@ -260,6 +360,7 @@ server.registerTool(
   })
 );
 
+// Register append-file tool
 server.registerTool(
   "append-file",
   {
@@ -277,8 +378,14 @@ server.registerTool(
       const enc = encoding ?? "utf8";
       await ftpClient.appendFile(remotePath, content, enc);
       const appendedBytes = Buffer.byteLength(content, enc);
+
       return {
-        content: [{ type: "text" as const, text: `Successfully appended ${formatSize(appendedBytes)} to ${remotePath}` }],
+        content: [
+          {
+            type: "text" as const,
+            text: `Successfully appended ${formatSize(appendedBytes)} to ${remotePath}`
+          }
+        ],
         structuredContent: { remotePath, appendedBytes },
       };
     } catch (error) {
@@ -287,6 +394,7 @@ server.registerTool(
   })
 );
 
+// Helper function to format file sizes
 function formatSize(bytes: number): string {
   if (bytes < 1024) return bytes + " B";
   else if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + " KB";
@@ -294,7 +402,9 @@ function formatSize(bytes: number): string {
   else return (bytes / (1024 * 1024 * 1024)).toFixed(2) + " GB";
 }
 
+// Initialize and run the server
 async function main() {
+  // Load encryption key from OS keychain before decrypting any credentials
   await loadEncryptionKey();
   try {
     const protocol = resolveProtocol(process.env.FTP_PROTOCOL);
@@ -324,7 +434,10 @@ async function main() {
       ftpClient = new FtpClient(ftpConfig);
     }
   } catch (error) {
-    console.error("Failed to initialize connection config:", error instanceof Error ? error.message : String(error));
+    console.error(
+      "Failed to initialize connection config:",
+      error instanceof Error ? error.message : String(error)
+    );
     process.exit(1);
   }
   const transport = new StdioServerTransport();
