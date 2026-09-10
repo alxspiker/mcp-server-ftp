@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 1.2.2 — 2026-09-10
+
+### Fixed
+- Removed runtime `outputSchema` declarations from MCP tool registration because the current TypeScript SDK advertises them as JSON Schema draft-07, which is rejected by clients requiring JSON Schema 2020-12. Tools continue returning `structuredContent`.
+
 ## 1.2.1 — 2026-08-07
 
 ### Added
