@@ -113,6 +113,8 @@ FTPS uses the normal FTP client with TLS enabled:
 
 `FTP_SECURE` is only meaningful when `FTP_PROTOCOL=ftp`. It is ignored by the SFTP path because SFTP is already encrypted over SSH.
 
+For a trusted FTPS server with a self-signed certificate, add `"FTP_TLS_REJECT_UNAUTHORIZED": "false"` to the FTPS `env` object. This keeps TLS encryption but disables certificate and hostname verification, so use it only when you independently trust the server and network. Verification stays enabled by default. This setting requires `FTP_SECURE=true` and `FTP_PROTOCOL=ftp`.
+
 ### SFTP example
 
 ```json
@@ -144,6 +146,7 @@ FTPS uses the normal FTP client with TLS enabled:
 | `FTP_USER` | all | Username; supports encrypted `enc:` values | `anonymous` |
 | `FTP_PASSWORD` | all | Password; supports encrypted `enc:` values | empty |
 | `FTP_SECURE` | FTP/FTPS only | Enables TLS/FTPS for the FTP client | `false` |
+| `FTP_TLS_REJECT_UNAUTHORIZED` | FTPS only | Verify the FTPS certificate and hostname; `false` allows a trusted self-signed certificate but disables identity checks | `true` |
 | `FTP_PRIVATE_KEY_PATH` | SFTP only | SSH private-key path or `op://` 1Password secret reference | auto-detect |
 | `FTP_PASSPHRASE` | SFTP only | SSH private-key passphrase; supports encrypted `enc:` values | empty |
 | `FTP_ENCRYPTION_KEY` | encrypted credentials | 64-character hex AES-256 key. Prefer the OS keychain or a global environment variable for local installs. | disabled |
@@ -236,7 +239,7 @@ npm run encrypt-env -- <plaintext-value>
 | `edit-file` | Replace exact text in a remote text file |
 | `append-file` | Append content to a file, creating it if needed |
 
-Tool calls return machine-readable `structuredContent`, and all nine tools advertise output schemas. Version 1.2.2 includes a compatibility shim that ensures advertised schemas use the JSON Schema 2020-12 dialect required by current MCP clients.
+Tool calls return machine-readable `structuredContent`, and all nine tools advertise output schemas. Version 1.2.2 introduced a compatibility shim that ensures advertised schemas use the JSON Schema 2020-12 dialect required by current MCP clients.
 
 ## Security notes
 

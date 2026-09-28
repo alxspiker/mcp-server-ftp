@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 1.2.3 — 2026-09-28
+
+### Added
+- `FTP_TLS_REJECT_UNAUTHORIZED=false` explicitly permits FTPS connections to trusted servers with self-signed certificates. Certificate and hostname verification remain enabled by default. Exposed in the Smithery and MCPB configurations.
+
 ## 1.2.2 — 2026-09-10
 
 ### Fixed

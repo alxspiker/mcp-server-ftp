@@ -12,6 +12,7 @@ export interface FtpConfig {
   user: string;
   password: string;
   secure: boolean;
+  rejectUnauthorized?: boolean;
 }
 
 export type FileEncoding = "utf8" | "base64";
@@ -41,7 +42,8 @@ export class FtpClient {
         port: this.config.port,
         user: this.config.user,
         password: this.config.password,
-        secure: this.config.secure
+        secure: this.config.secure,
+        ...(this.config.secure ? { secureOptions: { rejectUnauthorized: this.config.rejectUnauthorized !== false } } : {})
       });
       return await operation(client);
     } finally {

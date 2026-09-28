@@ -38,6 +38,12 @@ startCommand:
         description: >
           Enable TLS/FTPS when ftpProtocol is "ftp". This setting is not used for SFTP,
           because SFTP is already encrypted over SSH.
+      ftpTlsRejectUnauthorized:
+        type: boolean
+        default: true
+        description: >
+          Verify the FTPS certificate and hostname. Set false only for a trusted
+          self-signed FTPS server; this disables certificate and hostname verification.
       ftpPrivateKeyPath:
         type: string
         default: ""
@@ -69,6 +75,7 @@ startCommand:
         FTP_PASSWORD: config.ftpPassword || '',
         FTP_PROTOCOL: config.ftpProtocol || 'ftp',
         ...(config.ftpProtocol !== 'sftp' && config.ftpSecure ? { FTP_SECURE: 'true' } : {}),
+        ...(config.ftpTlsRejectUnauthorized === false ? { FTP_TLS_REJECT_UNAUTHORIZED: 'false' } : {}),
         ...(config.ftpPrivateKeyPath ? { FTP_PRIVATE_KEY_PATH: config.ftpPrivateKeyPath } : {}),
         ...(config.ftpPassphrase ? { FTP_PASSPHRASE: config.ftpPassphrase } : {}),
         ...(config.ftpEncryptionKey ? { FTP_ENCRYPTION_KEY: config.ftpEncryptionKey } : {})

@@ -2,7 +2,7 @@
   "manifest_version": "0.2",
   "name": "mcp-server-ftp",
   "display_name": "FTP Access Server",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "MCP server for FTP, FTPS, and SFTP access: list, download, upload, edit, append, rename, and delete files and directories on remote servers.",
   "long_description": "Interact with FTP, FTPS, and SFTP servers using natural language. Supports binary-safe file transfers, in-place text edits, appends, renames, directory management, FTPS/TLS, SFTP password or SSH key authentication, and AES-256-GCM encrypted credentials with OS keychain support for the encryption key.",
   "author": {
@@ -28,6 +28,7 @@
         "FTP_USER": "${user_config.ftp_user}",
         "FTP_PASSWORD": "${user_config.ftp_password}",
         "FTP_SECURE": "${user_config.ftp_secure}",
+        "FTP_TLS_REJECT_UNAUTHORIZED": "${user_config.ftp_tls_reject_unauthorized}",
         "FTP_PROTOCOL": "${user_config.ftp_protocol}",
         "FTP_PRIVATE_KEY_PATH": "${user_config.ftp_private_key_path}",
         "FTP_PASSPHRASE": "${user_config.ftp_passphrase}",
@@ -70,6 +71,13 @@
       "title": "Enable FTPS",
       "description": "Enable TLS/FTPS on the FTP protocol path (true/false). Not used when protocol is sftp.",
       "default": "false",
+      "required": false
+    },
+    "ftp_tls_reject_unauthorized": {
+      "type": "string",
+      "title": "Verify FTPS certificate",
+      "description": "Keep true to verify the FTPS certificate and hostname. Set false only for a trusted self-signed FTPS server; this disables certificate and hostname verification.",
+      "default": "true",
       "required": false
     },
     "ftp_protocol": {
