@@ -15,6 +15,13 @@ function resolveSecure(raw: string | undefined): boolean {
   throw new Error(`Invalid value for FTP_SECURE: "${raw}". Expected one of: true/false, 1/0, yes/no.`);
 }
 
+function resolveTlsRejectUnauthorized(raw: string | undefined): boolean {
+  const v = raw?.trim().toLowerCase();
+  if (v === "true" || v === "1" || v === "yes" || v === undefined) return true;
+  if (v === "false" || v === "0" || v === "no") return false;
+  throw new Error(`Invalid value for FTP_TLS_REJECT_UNAUTHORIZED: "${raw}". Expected one of: true/false, 1/0, yes/no.`);
+}
+
 function resolveProtocol(raw: string | undefined): ConnectionType {
   const v = raw?.trim().toLowerCase();
   if (v === undefined || v === "") return ConnectionType.FTP;
@@ -32,7 +39,7 @@ let ftpClient: AnyFtpClient;
 // Create server instance
 const server = new McpServer({
   name: "mcp-server-ftp",
-  version: "1.2.2",
+  version: "1.2.3",
 });
 
 // The MCP SDK dispatches tool calls concurrently, but concurrent FTP operations
@@ -411,6 +418,10 @@ async function main() {
     const host = process.env.FTP_HOST || "localhost";
     const user = decrypt(process.env.FTP_USER || "anonymous");
     const password = decrypt(process.env.FTP_PASSWORD || "");
+    const rejectUnauthorized = resolveTlsRejectUnauthorized(process.env.FTP_TLS_REJECT_UNAUTHORIZED);
+    if (!rejectUnauthorized && (protocol !== ConnectionType.FTP || !resolveSecure(process.env.FTP_SECURE))) {
+      throw new Error("FTP_TLS_REJECT_UNAUTHORIZED=false requires FTP_PROTOCOL=ftp and FTP_SECURE=true.");
+    }
 
     if (protocol === ConnectionType.SFTP) {
       const passphrase = decrypt(process.env.FTP_PASSPHRASE || "");
@@ -430,6 +441,7 @@ async function main() {
         user,
         password,
         secure: resolveSecure(process.env.FTP_SECURE),
+        rejectUnauthorized,
       };
       ftpClient = new FtpClient(ftpConfig);
     }

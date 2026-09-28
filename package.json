@@ -1,6 +1,6 @@
 {
   "name": "mcp-server-ftp",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "Model Context Protocol server for FTP access",
   "main": "build/index.js",
   "type": "module",
@@ -9,6 +9,7 @@
   },
   "scripts": {
     "build": "tsc",
+    "test": "npm run build && node --test test/*.test.mjs",
     "start": "node build/index.js",
     "dev": "npm run build && npm start",
     "prepublishOnly": "npm run build",
@@ -33,6 +34,8 @@
   "devDependencies": {
     "@types/node": "^20.9.0",
     "@types/ssh2-sftp-client": "^9.0.6",
+    "ftp-srv": "^4.6.3",
+    "selfsigned": "^5.5.0",
     "typescript": "^5.2.2"
   },
   "files": [
