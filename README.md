@@ -241,6 +241,20 @@ npm run encrypt-env -- <plaintext-value>
 
 Tool calls return machine-readable `structuredContent`, and all nine tools advertise output schemas. Version 1.2.2 introduced a compatibility shim that ensures advertised schemas use the JSON Schema 2020-12 dialect required by current MCP clients.
 
+## Optional HOL Guard protection
+
+[HOL Guard](https://github.com/hashgraph-online/hol-guard) has an opt-in **FTP MCP** profile (`mcp.ftp`, catalog ID `command.mcp-ftp`), [merged in PR #4514](https://github.com/hashgraph-online/hol-guard/pull/4514). Use a HOL Guard release or source build that includes this contribution; releases published before the merge do not include it.
+
+To use the profile:
+
+1. Install HOL Guard and configure protection for your MCP client using its [setup instructions](https://github.com/hashgraph-online/hol-guard#readme).
+2. Launch this server through `npx mcp-server-ftp`, as shown in the [npm configuration](#installing-via-npm).
+3. Enable **FTP MCP** locally through HOL Guard's [Protection Center](https://github.com/hashgraph-online/hol-guard/blob/main/docs/guard/managed-controls-local-extensions.md).
+
+When enabled, `delete-directory` requires human review before recursively deleting a remote directory and its contents. The other eight tools and unknown tools inherit the existing Guard policy. Custom grants on the device take precedence over the contributed defaults, and stronger protection requirements remain effective.
+
+The profile is off by default. It matches npm package launches through `npx`; direct `node build/index.js` launches are outside this profile.
+
 ## Security notes
 
 - Prefer SFTP when available; it uses SSH encryption and key authentication without FTPS certificate configuration.
