@@ -102,6 +102,33 @@ export class FtpClient {
     }
   }
 
+  /** Stream a local file to the server. Returns the remote size when the server reports it (SIZE), else null. */
+  async uploadLocalFile(localPath: string, remotePath: string): Promise<number | null> {
+    try {
+      return await this.withConnection(async (client) => {
+        await client.uploadFrom(localPath, remotePath);
+        try {
+          return await client.size(remotePath);
+        } catch {
+          return null;
+        }
+      });
+    } catch (error) {
+      console.error("Upload local file error:", error);
+      throw new Error(`Failed to upload file: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /** Stream a remote file into a local path (the caller picks a temporary path and renames it). */
+  async downloadToLocal(remotePath: string, localPath: string): Promise<void> {
+    try {
+      await this.withConnection((client) => client.downloadTo(localPath, remotePath));
+    } catch (error) {
+      console.error("Download to local error:", error);
+      throw new Error(`Failed to download file: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
   async createDirectory(remotePath: string): Promise<boolean> {
     try {
       await this.withConnection((client) => client.ensureDir(remotePath));

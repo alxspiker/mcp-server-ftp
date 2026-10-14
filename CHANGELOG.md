@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 1.3.0 — 2026-10-14
+
+### Added
+- `upload-local-file` uploads a file from the computer running the server by path, and `download-to-local` downloads a remote file to a local path. Both stream the file instead of passing its contents through the tool call, so large files (built web apps, images, archives) no longer need to fit inside a request. Uploads report size and SHA-256 and check the remote size afterwards.
+- `FTP_LOCAL_ROOTS` (and `ftp_local_roots` / `ftpLocalRoots` in the MCPB and Smithery configs) lists the local folders these tools may use. Local transfer is disabled when it is unset. Paths are checked after following symbolic links; downloads refuse to overwrite unless asked, never write through a symbolic link, and are renamed into place only once complete.
+
 ## 1.2.3 — 2026-09-28
 
 ### Added

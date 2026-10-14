@@ -63,6 +63,13 @@ startCommand:
           Optional 64-character hex AES-256 key for decrypting enc: credentials.
           For local installs, prefer the OS keychain or a global environment variable
           instead of storing this alongside encrypted credentials.
+      ftpLocalRoots:
+        type: string
+        default: ""
+        description: >
+          Optional local folders that upload-local-file may read from and
+          download-to-local may write into, separated by ":" (macOS/Linux) or ";"
+          (Windows). Leave empty to disable local file transfer.
   commandFunction:
     |-
     (config) => ({
@@ -78,7 +85,8 @@ startCommand:
         ...(config.ftpTlsRejectUnauthorized === false ? { FTP_TLS_REJECT_UNAUTHORIZED: 'false' } : {}),
         ...(config.ftpPrivateKeyPath ? { FTP_PRIVATE_KEY_PATH: config.ftpPrivateKeyPath } : {}),
         ...(config.ftpPassphrase ? { FTP_PASSPHRASE: config.ftpPassphrase } : {}),
-        ...(config.ftpEncryptionKey ? { FTP_ENCRYPTION_KEY: config.ftpEncryptionKey } : {})
+        ...(config.ftpEncryptionKey ? { FTP_ENCRYPTION_KEY: config.ftpEncryptionKey } : {}),
+        ...(config.ftpLocalRoots ? { FTP_LOCAL_ROOTS: config.ftpLocalRoots } : {})
       }
     })
   exampleConfig:

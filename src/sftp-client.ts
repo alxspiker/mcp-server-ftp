@@ -154,6 +154,33 @@ export class SftpClient {
     }
   }
 
+  /** Stream a local file to the server. Returns the remote size from stat. */
+  async uploadLocalFile(localPath: string, remotePath: string): Promise<number | null> {
+    const client = new Ssh2SftpClient();
+    try {
+      await client.connect(await this.buildClientOptions());
+      await client.fastPut(localPath, remotePath);
+      try {
+        return (await client.stat(remotePath)).size;
+      } catch {
+        return null;
+      }
+    } finally {
+      await safeDisconnect(client);
+    }
+  }
+
+  /** Stream a remote file into a local path (the caller picks a temporary path and renames it). */
+  async downloadToLocal(remotePath: string, localPath: string): Promise<void> {
+    const client = new Ssh2SftpClient();
+    try {
+      await client.connect(await this.buildClientOptions());
+      await client.fastGet(remotePath, localPath);
+    } finally {
+      await safeDisconnect(client);
+    }
+  }
+
   async createDirectory(remotePath: string): Promise<boolean> {
     const client = new Ssh2SftpClient();
     try {

@@ -7,6 +7,8 @@ import { SftpClient, SftpConfig } from "./sftp-client.js";
 import { decrypt } from "./crypto.js";
 import { ConnectionType } from "./connection-type.js";
 import { loadEncryptionKey } from "./keychain.js";
+import * as fs from "fs";
+import { parseLocalRoots, resolveReadable, resolveWritable, sha256File, tempBeside } from "./local-files.js";
 
 function resolveSecure(raw: string | undefined): boolean {
   const v = raw?.trim().toLowerCase();
@@ -35,11 +37,13 @@ function resolveProtocol(raw: string | undefined): ConnectionType {
 // Client initialized inside main() so decryption/config errors are caught gracefully
 type AnyFtpClient = FtpClient | SftpClient;
 let ftpClient: AnyFtpClient;
+// Local directories that upload-local-file / download-to-local may use (FTP_LOCAL_ROOTS); empty disables them.
+let localRoots: string[] = [];
 
 // Create server instance
 const server = new McpServer({
   name: "mcp-server-ftp",
-  version: "1.2.3",
+  version: "1.3.0",
 });
 
 // The MCP SDK dispatches tool calls concurrently, but concurrent FTP operations
@@ -178,6 +182,82 @@ server.registerTool(
       };
     } catch (error) {
       return errorResult("Error uploading file", error);
+    }
+  })
+);
+
+// Register upload-local-file tool
+server.registerTool(
+  "upload-local-file",
+  {
+    title: "Upload Local File",
+    description: "Upload a file from this computer to the FTP server by path, streamed, so file size is not limited by the request. Only files inside the directories listed in FTP_LOCAL_ROOTS can be uploaded.",
+    inputSchema: {
+      localPath: z.string().describe("Path of the local file (inside an FTP_LOCAL_ROOTS directory)"),
+      remotePath: z.string().describe("Destination path on the FTP server"),
+    },
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
+  },
+  serialized(async ({ localPath, remotePath }) => {
+    try {
+      const source = resolveReadable(localPath, localRoots);
+      const bytes = fs.statSync(source).size;
+      const sha256 = await sha256File(source);
+      const remoteSize = await ftpClient.uploadLocalFile(source, remotePath);
+      if (remoteSize !== null && remoteSize !== bytes) {
+        throw new Error(`size mismatch after upload: local ${bytes} bytes, remote ${remoteSize} bytes`);
+      }
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `Uploaded ${source} (${formatSize(bytes)}) to ${remotePath}${remoteSize === null ? " (the server did not report the remote size)" : "; remote size matches"}. SHA-256 ${sha256}`
+          }
+        ],
+        structuredContent: { localPath: source, remotePath, bytesWritten: bytes, remoteSize, sha256 },
+      };
+    } catch (error) {
+      return errorResult("Error uploading local file", error);
+    }
+  })
+);
+
+// Register download-to-local tool
+server.registerTool(
+  "download-to-local",
+  {
+    title: "Download To Local File",
+    description: "Download a file from the FTP server straight to a path on this computer, streamed, without returning its contents. Only paths inside the directories listed in FTP_LOCAL_ROOTS can be written.",
+    inputSchema: {
+      remotePath: z.string().describe("Path of the file on the FTP server"),
+      localPath: z.string().describe("Destination path on this computer (inside an FTP_LOCAL_ROOTS directory; the folder must exist)"),
+      overwrite: z.boolean().optional().describe("Replace an existing local file (default: false)"),
+    },
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
+  },
+  serialized(async ({ remotePath, localPath, overwrite }) => {
+    let temp: string | undefined;
+    try {
+      const target = resolveWritable(localPath, localRoots, overwrite ?? false);
+      temp = tempBeside(target);
+      await ftpClient.downloadToLocal(remotePath, temp);
+      fs.renameSync(temp, target);
+      temp = undefined;
+      const bytes = fs.statSync(target).size;
+      const sha256 = await sha256File(target);
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `Downloaded ${remotePath} (${formatSize(bytes)}) to ${target}. SHA-256 ${sha256}`
+          }
+        ],
+        structuredContent: { remotePath, localPath: target, bytes, sha256 },
+      };
+    } catch (error) {
+      return errorResult("Error downloading to local file", error);
+    } finally {
+      if (temp && fs.existsSync(temp)) fs.unlinkSync(temp);
     }
   })
 );
@@ -422,6 +502,8 @@ async function main() {
     if (!rejectUnauthorized && (protocol !== ConnectionType.FTP || !resolveSecure(process.env.FTP_SECURE))) {
       throw new Error("FTP_TLS_REJECT_UNAUTHORIZED=false requires FTP_PROTOCOL=ftp and FTP_SECURE=true.");
     }
+
+    localRoots = parseLocalRoots(process.env.FTP_LOCAL_ROOTS);
 
     if (protocol === ConnectionType.SFTP) {
       const passphrase = decrypt(process.env.FTP_PASSPHRASE || "");
