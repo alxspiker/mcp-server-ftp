@@ -260,8 +260,10 @@ They are disabled until you list the folders they may use:
 }
 ```
 
-- Paths are resolved after following symbolic links, so a link inside an allowed folder that points outside it is refused.
-- `download-to-local` will not overwrite an existing file unless `overwrite` is `true`, will not write through a symbolic link, and writes to a temporary file that is renamed into place only when the download completes.
+- A path outside the allowed folders is refused before anything about it is looked up, so the reply is the same whether or not it, or its parent folder, exists.
+- Paths are resolved after following symbolic links, so a link inside an allowed folder that points outside it is refused. Uploads read through a single file descriptor opened after that check (with `O_NOFOLLOW` where the platform has it), so the file can't be swapped between the check and the transfer.
+- `download-to-local` writes to a temporary file with a random name, created exclusively (`O_CREAT | O_EXCL`, plus `O_NOFOLLOW` where available) beside the target, and writes through its descriptor only, so a file or symbolic link planted at that name can't redirect the download.
+- With `overwrite` false (the default), the finished download is committed with a no-replace operation (a hard link, or an exclusive copy where the file system has no hard links), so a file that appears at the target during the download is never replaced. With `overwrite: true` it is renamed over the target. An existing symbolic link at the target is refused, and the temporary file is removed on success and on failure.
 - `upload-local-file` reports the file's size and SHA-256, and compares the size the server reports afterwards (FTP `SIZE` or SFTP `stat`) with the local size.
 
 ## Optional HOL Guard protection

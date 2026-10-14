@@ -4,6 +4,7 @@ import * as path from "path";
 import * as os from "os";
 import { isUtf8 } from "buffer";
 import { randomUUID } from "crypto";
+import type { Readable, Writable } from "stream";
 
 // Define FTP config interface
 export interface FtpConfig {
@@ -102,11 +103,11 @@ export class FtpClient {
     }
   }
 
-  /** Stream a local file to the server. Returns the remote size when the server reports it (SIZE), else null. */
-  async uploadLocalFile(localPath: string, remotePath: string): Promise<number | null> {
+  /** Upload from an already-open local stream. Returns the remote size when the server reports it (SIZE), else null. */
+  async uploadLocalStream(source: Readable, remotePath: string): Promise<number | null> {
     try {
       return await this.withConnection(async (client) => {
-        await client.uploadFrom(localPath, remotePath);
+        await client.uploadFrom(source, remotePath);
         try {
           return await client.size(remotePath);
         } catch {
@@ -119,10 +120,10 @@ export class FtpClient {
     }
   }
 
-  /** Stream a remote file into a local path (the caller picks a temporary path and renames it). */
-  async downloadToLocal(remotePath: string, localPath: string): Promise<void> {
+  /** Download into a caller-owned writable stream (the caller opened the destination file exclusively). */
+  async downloadToStream(remotePath: string, destination: Writable): Promise<void> {
     try {
-      await this.withConnection((client) => client.downloadTo(localPath, remotePath));
+      await this.withConnection((client) => client.downloadTo(destination, remotePath));
     } catch (error) {
       console.error("Download to local error:", error);
       throw new Error(`Failed to download file: ${error instanceof Error ? error.message : String(error)}`);

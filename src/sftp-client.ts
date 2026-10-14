@@ -4,6 +4,7 @@ import * as path from "path";
 import * as os from "os";
 import { isUtf8 } from "buffer";
 import { randomUUID } from "crypto";
+import type { Readable, Writable } from "stream";
 import type { FileEncoding } from "./ftp-client.js";
 import { isOnePasswordRef, readOnePasswordSecret } from "./onepassword.js";
 
@@ -154,12 +155,12 @@ export class SftpClient {
     }
   }
 
-  /** Stream a local file to the server. Returns the remote size from stat. */
-  async uploadLocalFile(localPath: string, remotePath: string): Promise<number | null> {
+  /** Upload from an already-open local stream. Returns the remote size from stat. */
+  async uploadLocalStream(source: Readable, remotePath: string): Promise<number | null> {
     const client = new Ssh2SftpClient();
     try {
       await client.connect(await this.buildClientOptions());
-      await client.fastPut(localPath, remotePath);
+      await client.put(source, remotePath);
       try {
         return (await client.stat(remotePath)).size;
       } catch {
@@ -170,12 +171,12 @@ export class SftpClient {
     }
   }
 
-  /** Stream a remote file into a local path (the caller picks a temporary path and renames it). */
-  async downloadToLocal(remotePath: string, localPath: string): Promise<void> {
+  /** Download into a caller-owned writable stream (the caller opened the destination file exclusively). */
+  async downloadToStream(remotePath: string, destination: Writable): Promise<void> {
     const client = new Ssh2SftpClient();
     try {
       await client.connect(await this.buildClientOptions());
-      await client.fastGet(remotePath, localPath);
+      await client.get(remotePath, destination);
     } finally {
       await safeDisconnect(client);
     }

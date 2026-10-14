@@ -8,7 +8,9 @@ import { decrypt } from "./crypto.js";
 import { ConnectionType } from "./connection-type.js";
 import { loadEncryptionKey } from "./keychain.js";
 import * as fs from "fs";
-import { parseLocalRoots, resolveReadable, resolveWritable, sha256File, tempBeside } from "./local-files.js";
+import { parseLocalRoots, resolveReadable, resolveWritable, openReadable, createTempFile, commitTemp, sha256Fd } from "./local-files.js";
+import * as path from "path";
+import { finished } from "stream/promises";
 
 function resolveSecure(raw: string | undefined): boolean {
   const v = raw?.trim().toLowerCase();
@@ -201,9 +203,17 @@ server.registerTool(
   serialized(async ({ localPath, remotePath }) => {
     try {
       const source = resolveReadable(localPath, localRoots);
-      const bytes = fs.statSync(source).size;
-      const sha256 = await sha256File(source);
-      const remoteSize = await ftpClient.uploadLocalFile(source, remotePath);
+      // Read through one descriptor opened (without following links) after the check,
+      // so the file can't be swapped between the check and the transfer.
+      const { fd, size: bytes } = openReadable(source);
+      let sha256: string;
+      let remoteSize: number | null;
+      try {
+        sha256 = await sha256Fd(fd);
+        remoteSize = await ftpClient.uploadLocalStream(fs.createReadStream("", { fd, start: 0, autoClose: false }), remotePath);
+      } finally {
+        fs.closeSync(fd);
+      }
       if (remoteSize !== null && remoteSize !== bytes) {
         throw new Error(`size mismatch after upload: local ${bytes} bytes, remote ${remoteSize} bytes`);
       }
@@ -239,12 +249,23 @@ server.registerTool(
     let temp: string | undefined;
     try {
       const target = resolveWritable(localPath, localRoots, overwrite ?? false);
-      temp = tempBeside(target);
-      await ftpClient.downloadToLocal(remotePath, temp);
-      fs.renameSync(temp, target);
-      temp = undefined;
-      const bytes = fs.statSync(target).size;
-      const sha256 = await sha256File(target);
+      // Exclusive, unpredictable temp file; the transfer writes through its descriptor only.
+      const tmp = createTempFile(path.dirname(target), path.basename(target));
+      temp = tmp.path;
+      let bytes: number;
+      let sha256: string;
+      try {
+        const out = fs.createWriteStream("", { fd: tmp.fd, autoClose: false });
+        await ftpClient.downloadToStream(remotePath, out);
+        if (!out.writableFinished) await finished(out);
+        fs.fsyncSync(tmp.fd);
+        bytes = fs.fstatSync(tmp.fd).size;
+        sha256 = await sha256Fd(tmp.fd);
+      } finally {
+        fs.closeSync(tmp.fd);
+      }
+      // No-replace commit unless overwrite was asked for (see commitTemp).
+      commitTemp(tmp.path, target, overwrite ?? false);
       return {
         content: [
           {
@@ -257,7 +278,10 @@ server.registerTool(
     } catch (error) {
       return errorResult("Error downloading to local file", error);
     } finally {
-      if (temp && fs.existsSync(temp)) fs.unlinkSync(temp);
+      // After a rename the temp name is gone; after a link or copy it is the leftover twin.
+      if (temp) {
+        try { fs.unlinkSync(temp); } catch { /* already moved or removed */ }
+      }
     }
   })
 );
