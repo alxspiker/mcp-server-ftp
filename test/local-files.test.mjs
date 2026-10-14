@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { mkdtemp, mkdir, rm, writeFile, readFile, readdir, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, basename } from "node:path";
 import { randomBytes, createHash } from "node:crypto";
 import { createRequire } from "node:module";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -54,6 +54,19 @@ async function withServer(fn) {
 
 const text = (result) => result.content.map((c) => c.text).join("\n");
 
+// Windows only lets ordinary users create symbolic links in Developer Mode; elsewhere this
+// always works. Where it isn't allowed, skip just the symlink checks and say so.
+async function trySymlink(t, target, link) {
+  try {
+    await symlink(target, link);
+    return true;
+  } catch (error) {
+    if (error.code !== "EPERM" && error.code !== "EACCES") throw error;
+    t.diagnostic(`symlink checks skipped: this account cannot create symbolic links (${error.code})`);
+    return false;
+  }
+}
+
 test("local transfer tools are refused when FTP_LOCAL_ROOTS is not set", async () => {
   await withServer(async ({ localRoot, connect }) => {
     await writeFile(join(localRoot, "a.txt"), "hello");
@@ -90,13 +103,15 @@ test("upload-local-file streams a large binary file byte for byte", async () => 
   });
 });
 
-test("upload-local-file refuses paths outside FTP_LOCAL_ROOTS, traversal and escaping symlinks", async () => {
+test("upload-local-file refuses paths outside FTP_LOCAL_ROOTS, traversal and escaping symlinks", async (t) => {
   await withServer(async ({ serverRoot, localRoot, outside, connect }) => {
     await writeFile(join(outside, "secret.txt"), "top secret");
-    await symlink(join(outside, "secret.txt"), join(localRoot, "link.txt"));
+    const linked = await trySymlink(t, join(outside, "secret.txt"), join(localRoot, "link.txt"));
     const client = await connect({ FTP_LOCAL_ROOTS: localRoot });
     try {
-      for (const localPath of [join(outside, "secret.txt"), join(localRoot, "..", "x", "..", outside.split("/").pop(), "secret.txt"), join(localRoot, "link.txt")]) {
+      const attempts = [join(outside, "secret.txt"), join(localRoot, "..", "x", "..", basename(outside), "secret.txt")];
+      if (linked) attempts.push(join(localRoot, "link.txt"));
+      for (const localPath of attempts) {
         const result = await client.callTool({ name: "upload-local-file", arguments: { localPath, remotePath: "/leak.txt" } });
         assert.equal(result.isError, true, `expected refusal for ${localPath}`);
         assert.match(text(result), /outside the allowed directories|not found/);
@@ -108,7 +123,7 @@ test("upload-local-file refuses paths outside FTP_LOCAL_ROOTS, traversal and esc
   });
 });
 
-test("download-to-local writes inside the root, respects overwrite and refuses symlink targets", async () => {
+test("download-to-local writes inside the root, respects overwrite and refuses symlink targets", async (t) => {
   await withServer(async ({ serverRoot, localRoot, outside, connect }) => {
     const data = randomBytes(256 * 1024);
     await writeFile(join(serverRoot, "file.bin"), data);
@@ -133,11 +148,12 @@ test("download-to-local writes inside the root, respects overwrite and refuses s
       assert.match(text(out), /outside the allowed directories/);
 
       await writeFile(join(outside, "victim.txt"), "keep me");
-      await symlink(join(outside, "victim.txt"), join(localRoot, "victim-link.txt"));
-      const viaLink = await client.callTool({ name: "download-to-local", arguments: { remotePath: "/file.bin", localPath: join(localRoot, "victim-link.txt"), overwrite: true } });
-      assert.equal(viaLink.isError, true);
-      assert.match(text(viaLink), /symbolic link/);
-      assert.equal(await readFile(join(outside, "victim.txt"), "utf8"), "keep me");
+      if (await trySymlink(t, join(outside, "victim.txt"), join(localRoot, "victim-link.txt"))) {
+        const viaLink = await client.callTool({ name: "download-to-local", arguments: { remotePath: "/file.bin", localPath: join(localRoot, "victim-link.txt"), overwrite: true } });
+        assert.equal(viaLink.isError, true);
+        assert.match(text(viaLink), /symbolic link/);
+        assert.equal(await readFile(join(outside, "victim.txt"), "utf8"), "keep me");
+      }
 
       const missing = await client.callTool({ name: "download-to-local", arguments: { remotePath: "/nope.bin", localPath: join(localRoot, "nope.bin") } });
       assert.equal(missing.isError, true);
