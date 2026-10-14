@@ -114,8 +114,12 @@ test("upload-local-file refuses paths outside FTP_LOCAL_ROOTS, traversal and esc
       for (const localPath of attempts) {
         const result = await client.callTool({ name: "upload-local-file", arguments: { localPath, remotePath: "/leak.txt" } });
         assert.equal(result.isError, true, `expected refusal for ${localPath}`);
-        assert.match(text(result), /outside the allowed directories|not found/);
+        assert.match(text(result), /outside the allowed directories/);
       }
+      // A file outside the roots that doesn't exist gets the same refusal, so replies don't reveal what exists.
+      const ghost = await client.callTool({ name: "upload-local-file", arguments: { localPath: join(outside, "no-such-file.txt"), remotePath: "/leak.txt" } });
+      assert.equal(ghost.isError, true);
+      assert.match(text(ghost), /outside the allowed directories/);
       await assert.rejects(readFile(join(serverRoot, "leak.txt")));
     } finally {
       await client.close();

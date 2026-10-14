@@ -50,6 +50,22 @@ function notAllowed(localPath: string, roots: string[]): Error {
   return new Error(`Local path "${localPath}" is outside the allowed directories (FTP_LOCAL_ROOTS).`);
 }
 
+/** The real path of the nearest existing ancestor, joined with the rest (no file system errors). */
+function realParentOrSelf(p: string): string {
+  let dir = p;
+  const rest: string[] = [];
+  for (;;) {
+    try {
+      return path.join(fs.realpathSync(dir), ...rest.reverse());
+    } catch {
+      const up = path.dirname(dir);
+      if (up === dir) return p;
+      rest.push(path.basename(dir));
+      dir = up;
+    }
+  }
+}
+
 /**
  * Resolve a local file to read. Symlinks are followed before the check, so a link
  * inside an allowed directory cannot point outside it.
@@ -57,6 +73,11 @@ function notAllowed(localPath: string, roots: string[]): Error {
 export function resolveReadable(localPath: string, roots: string[]): string {
   if (!roots.length) throw notAllowed(localPath, roots);
   const expanded = path.resolve(expandHome(localPath));
+  // Refuse paths outside the roots before touching the disk, so the reply never reveals
+  // whether a file outside them exists. (The check after realpath catches symlinks.)
+  if (!roots.some((root) => isInside(root, expanded)) && !roots.some((root) => isInside(root, realParentOrSelf(expanded)))) {
+    throw notAllowed(localPath, roots);
+  }
   let real: string;
   try {
     real = fs.realpathSync(expanded);
