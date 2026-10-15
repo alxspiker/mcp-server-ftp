@@ -86,6 +86,27 @@ const outputSchemas: Record<string, Record<string, unknown>> = {
     },
     required: ["remotePath", "replacements", "fileSize"],
   },
+  "upload-local-file": {
+    type: "object",
+    properties: {
+      localPath: { type: "string" },
+      remotePath: { type: "string" },
+      bytesWritten: { type: "number" },
+      remoteSize: { type: ["number", "null"] },
+      sha256: { type: "string" },
+    },
+    required: ["localPath", "remotePath", "bytesWritten", "remoteSize", "sha256"],
+  },
+  "download-to-local": {
+    type: "object",
+    properties: {
+      remotePath: { type: "string" },
+      localPath: { type: "string" },
+      bytes: { type: "number" },
+      sha256: { type: "string" },
+    },
+    required: ["remotePath", "localPath", "bytes", "sha256"],
+  },
   "append-file": {
     type: "object",
     properties: {

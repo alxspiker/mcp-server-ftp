@@ -2,8 +2,8 @@
   "manifest_version": "0.2",
   "name": "mcp-server-ftp",
   "display_name": "FTP Access Server",
-  "version": "1.2.3",
-  "description": "MCP server for FTP, FTPS, and SFTP access: list, download, upload, edit, append, rename, and delete files and directories on remote servers.",
+  "version": "1.3.0",
+  "description": "MCP server for FTP, FTPS, and SFTP access: list, download, upload (including local files by path), edit, append, rename, and delete files and directories on remote servers.",
   "long_description": "Interact with FTP, FTPS, and SFTP servers using natural language. Supports binary-safe file transfers, in-place text edits, appends, renames, directory management, FTPS/TLS, SFTP password or SSH key authentication, and AES-256-GCM encrypted credentials with OS keychain support for the encryption key.",
   "author": {
     "name": "alxspiker",
@@ -32,7 +32,8 @@
         "FTP_PROTOCOL": "${user_config.ftp_protocol}",
         "FTP_PRIVATE_KEY_PATH": "${user_config.ftp_private_key_path}",
         "FTP_PASSPHRASE": "${user_config.ftp_passphrase}",
-        "FTP_ENCRYPTION_KEY": "${user_config.ftp_encryption_key}"
+        "FTP_ENCRYPTION_KEY": "${user_config.ftp_encryption_key}",
+        "FTP_LOCAL_ROOTS": "${user_config.ftp_local_roots}"
       }
     }
   },
@@ -107,6 +108,13 @@
       "title": "Credential Encryption Key",
       "description": "Optional 64-character hex AES-256 key used to decrypt enc: credential values",
       "sensitive": true,
+      "default": "",
+      "required": false
+    },
+    "ftp_local_roots": {
+      "type": "string",
+      "title": "Local Transfer Folders",
+      "description": "Optional local folders that upload-local-file may read from and download-to-local may write into, separated by : (macOS/Linux) or ; (Windows). Leave empty to disable local file transfer.",
       "default": "",
       "required": false
     }
@@ -235,6 +243,54 @@
         "required": ["remotePath", "appendedBytes"]
       },
       "annotations": {"readOnlyHint": false, "destructiveHint": false, "idempotentHint": false, "openWorldHint": false}
+    },
+    {
+      "name": "upload-local-file",
+      "description": "Upload a local file by path (streamed, any size); only paths inside FTP_LOCAL_ROOTS",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "localPath": {"type": "string", "description": "Path of the local file (inside an FTP_LOCAL_ROOTS directory)"},
+          "remotePath": {"type": "string", "description": "Destination path on the remote server"}
+        },
+        "required": ["localPath", "remotePath"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "localPath": {"type": "string"},
+          "remotePath": {"type": "string"},
+          "bytesWritten": {"type": "number"},
+          "remoteSize": {"type": ["number", "null"]},
+          "sha256": {"type": "string"}
+        },
+        "required": ["localPath", "remotePath", "bytesWritten", "remoteSize", "sha256"]
+      },
+      "annotations": {"readOnlyHint": false, "destructiveHint": true, "idempotentHint": true, "openWorldHint": false}
+    },
+    {
+      "name": "download-to-local",
+      "description": "Download a remote file to a local path (streamed, contents not returned); only paths inside FTP_LOCAL_ROOTS",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "remotePath": {"type": "string", "description": "Path of the file on the remote server"},
+          "localPath": {"type": "string", "description": "Destination path on this computer (inside an FTP_LOCAL_ROOTS directory)"},
+          "overwrite": {"type": "boolean", "description": "Replace an existing local file (default: false)"}
+        },
+        "required": ["remotePath", "localPath"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "remotePath": {"type": "string"},
+          "localPath": {"type": "string"},
+          "bytes": {"type": "number"},
+          "sha256": {"type": "string"}
+        },
+        "required": ["remotePath", "localPath", "bytes", "sha256"]
+      },
+      "annotations": {"readOnlyHint": false, "destructiveHint": true, "idempotentHint": true, "openWorldHint": false}
     },
     {
       "name": "rename-file",

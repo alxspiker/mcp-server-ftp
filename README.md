@@ -16,6 +16,7 @@ This Model Context Protocol (MCP) server provides file-management tools for FTP,
 
 - List files and directories
 - Download and upload text or binary files
+- Upload and download local files by path, streamed, so size is not limited by the request (opt-in)
 - Edit exact text in remote files
 - Append to files
 - Rename or move files/directories
@@ -150,6 +151,7 @@ For a trusted FTPS server with a self-signed certificate, add `"FTP_TLS_REJECT_U
 | `FTP_PRIVATE_KEY_PATH` | SFTP only | SSH private-key path or `op://` 1Password secret reference | auto-detect |
 | `FTP_PASSPHRASE` | SFTP only | SSH private-key passphrase; supports encrypted `enc:` values | empty |
 | `FTP_ENCRYPTION_KEY` | encrypted credentials | 64-character hex AES-256 key. Prefer the OS keychain or a global environment variable for local installs. | disabled |
+| `FTP_LOCAL_ROOTS` | local file tools | Local directories `upload-local-file` may read from and `download-to-local` may write into, separated by `:` (macOS/Linux) or `;` (Windows). `~` is expanded. | disabled |
 
 ## SFTP authentication
 
@@ -238,8 +240,31 @@ npm run encrypt-env -- <plaintext-value>
 | `rename-file` | Rename or move a file or directory |
 | `edit-file` | Replace exact text in a remote text file |
 | `append-file` | Append content to a file, creating it if needed |
+| `upload-local-file` | Upload a local file by path, streamed; checks the remote size afterwards (needs `FTP_LOCAL_ROOTS`) |
+| `download-to-local` | Download a remote file to a local path, streamed, without returning its contents (needs `FTP_LOCAL_ROOTS`) |
 
-Tool calls return machine-readable `structuredContent`, and all nine tools advertise output schemas. Version 1.2.2 introduced a compatibility shim that ensures advertised schemas use the JSON Schema 2020-12 dialect required by current MCP clients.
+Tool calls return machine-readable `structuredContent`, and all eleven tools advertise output schemas. Version 1.2.2 introduced a compatibility shim that ensures advertised schemas use the JSON Schema 2020-12 dialect required by current MCP clients.
+
+## Transferring local files
+
+`upload-file` and `download-file` pass file contents through the tool call itself, which suits small text files. For anything larger, such as a built single-page app or an image, the agent would have to write the whole file into the request, which most clients cannot do. `upload-local-file` and `download-to-local` instead take a path on the computer running this server and stream the file directly, so size is limited only by the connection.
+
+They are disabled until you list the folders they may use:
+
+```json
+"env": {
+  "FTP_HOST": "ftp.example.com",
+  "FTP_USER": "your-username",
+  "FTP_PASSWORD": "your-password",
+  "FTP_LOCAL_ROOTS": "~/Sites/build:~/Downloads/uploads"
+}
+```
+
+- A path outside the allowed folders is refused before anything about it is looked up, so the reply is the same whether or not it, or its parent folder, exists.
+- Paths are resolved after following symbolic links, so a link inside an allowed folder that points outside it is refused. Uploads read through a single file descriptor opened after that check (with `O_NOFOLLOW` where the platform has it), so the file can't be swapped between the check and the transfer.
+- `download-to-local` writes to a temporary file with a random name, created exclusively (`O_CREAT | O_EXCL`, plus `O_NOFOLLOW` where available) beside the target, and writes through its descriptor only, so a file or symbolic link planted at that name can't redirect the download.
+- With `overwrite` false (the default), the finished download is committed with a no-replace operation (a hard link, or an exclusive copy where the file system has no hard links), so a file that appears at the target during the download is never replaced. With `overwrite: true` it is renamed over the target. An existing symbolic link at the target is refused, and the temporary file is removed on success and on failure.
+- `upload-local-file` reports the file's size and SHA-256, and compares the size the server reports afterwards (FTP `SIZE` or SFTP `stat`) with the local size.
 
 ## Optional HOL Guard protection
 
@@ -251,7 +276,7 @@ To use the profile:
 2. Launch this server through `npx mcp-server-ftp`, as shown in the [npm configuration](#installing-via-npm).
 3. Enable **FTP MCP** locally through HOL Guard's [Protection Center](https://github.com/hashgraph-online/hol-guard/blob/main/docs/guard/managed-controls-local-extensions.md).
 
-When enabled, `delete-directory` requires human review before recursively deleting a remote directory and its contents. The other eight tools and unknown tools inherit the existing Guard policy. Custom grants on the device take precedence over the contributed defaults, and stronger protection requirements remain effective.
+When enabled, `delete-directory` requires human review before recursively deleting a remote directory and its contents. The other tools and unknown tools inherit the existing Guard policy. Custom grants on the device take precedence over the contributed defaults, and stronger protection requirements remain effective.
 
 The profile is off by default. It matches npm package launches through `npx`; direct `node build/index.js` launches are outside this profile.
 
@@ -260,6 +285,7 @@ The profile is off by default. It matches npm package launches through `npx`; di
 - Prefer SFTP when available; it uses SSH encryption and key authentication without FTPS certificate configuration.
 - Use `FTP_SECURE=true` only for FTPS servers using the FTP protocol path.
 - Use credential encryption when a client configuration would otherwise contain plaintext credentials.
+- Local file transfer is off unless `FTP_LOCAL_ROOTS` is set. Keep the list to folders you are happy for the agent to publish from or download into; anything inside them can be uploaded to the server.
 - FTP and SFTP transfers may use short-lived local temporary files for upload/download/append operations; those files are removed during cleanup after each operation.
 
 ## Troubleshooting Windows builds
