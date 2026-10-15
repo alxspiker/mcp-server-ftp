@@ -2,7 +2,9 @@
 
 ## Unreleased
 
-## 1.3.0 — 2026-10-14
+## 1.3.0 — 2026-10-15
+
+Thanks to @lunchboffin for the local file transfer feature and tests (#21).
 
 ### Added
 - `upload-local-file` uploads a file from the computer running the server by path, and `download-to-local` downloads a remote file to a local path. Both stream the file instead of passing its contents through the tool call, so large files (built web apps, images, archives) no longer need to fit inside a request. Uploads report size and SHA-256 and check the remote size afterwards.
