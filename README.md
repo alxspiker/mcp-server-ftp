@@ -69,6 +69,10 @@ The server is published as [`mcp-server-ftp`](https://www.npmjs.com/package/mcp-
 }
 ```
 
+### Cursor plugin
+
+The repository is also a Cursor plugin: `.cursor-plugin/plugin.json` plus `mcp.json`, which runs `npx -y mcp-server-ftp` as `ftp-server`. Each `FTP_*` setting below is a plugin variable you set when installing or configuring the plugin in Cursor.
+
 ### Building from source
 
 ```bash

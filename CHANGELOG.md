@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### Added
+- Cursor plugin manifest (`.cursor-plugin/plugin.json`) and `mcp.json`, exposing every `FTP_*` setting as a plugin variable.
+
 ## 1.3.0 — 2026-10-15
 
 Thanks to @lunchboffin for the local file transfer feature and tests (#21).
