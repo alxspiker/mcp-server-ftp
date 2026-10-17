@@ -1,0 +1,97 @@
+{
+  "name": "mcp-server-ftp",
+  "version": "1.3.0",
+  "description": "Model Context Protocol server for FTP access",
+  "author": {
+    "name": "Alx Spiker"
+  },
+  "homepage": "https://github.com/alxspiker/mcp-server-ftp",
+  "repository": "https://github.com/alxspiker/mcp-server-ftp",
+  "license": "MIT",
+  "keywords": [
+    "ftp",
+    "ftps",
+    "sftp",
+    "file-transfer",
+    "deployment",
+    "mcp"
+  ],
+  "variables": {
+    "type": "object",
+    "properties": {
+      "FTP_HOST": {
+        "type": "string",
+        "title": "Host",
+        "description": "Server hostname or IP address."
+      },
+      "FTP_PORT": {
+        "type": "string",
+        "title": "Port",
+        "description": "Server port. Leave empty for 21 (FTP/FTPS) or 22 (SFTP)."
+      },
+      "FTP_PROTOCOL": {
+        "type": "string",
+        "title": "Protocol",
+        "description": "ftp (also used for FTPS) or sftp.",
+        "enum": [
+          "ftp",
+          "sftp"
+        ],
+        "default": "ftp"
+      },
+      "FTP_USER": {
+        "type": "string",
+        "title": "Username",
+        "description": "Username; supports encrypted enc: values. Defaults to anonymous."
+      },
+      "FTP_PASSWORD": {
+        "type": "string",
+        "title": "Password",
+        "description": "Password; supports encrypted enc: values."
+      },
+      "FTP_SECURE": {
+        "type": "string",
+        "title": "Use FTPS",
+        "description": "FTP only: true enables TLS (FTPS). Ignored for SFTP.",
+        "enum": [
+          "true",
+          "false"
+        ],
+        "default": "false"
+      },
+      "FTP_TLS_REJECT_UNAUTHORIZED": {
+        "type": "string",
+        "title": "Verify FTPS certificate",
+        "description": "FTPS only: false allows a trusted self-signed certificate but disables certificate and hostname checks.",
+        "enum": [
+          "true",
+          "false"
+        ],
+        "default": "true"
+      },
+      "FTP_PRIVATE_KEY_PATH": {
+        "type": "string",
+        "title": "SFTP private key path",
+        "description": "SFTP only: SSH private-key path or op:// 1Password reference. Auto-detected when empty."
+      },
+      "FTP_PASSPHRASE": {
+        "type": "string",
+        "title": "SFTP key passphrase",
+        "description": "SFTP only: private-key passphrase; supports encrypted enc: values."
+      },
+      "FTP_ENCRYPTION_KEY": {
+        "type": "string",
+        "title": "Encryption key",
+        "description": "64-character hex AES-256 key for enc: credentials. Prefer the OS keychain for local installs."
+      },
+      "FTP_LOCAL_ROOTS": {
+        "type": "string",
+        "title": "Local roots",
+        "description": "Local folders the upload-local-file and download-to-local tools may use, separated by : (macOS/Linux) or ; (Windows). Local file tools are off when empty."
+      }
+    },
+    "required": [
+      "FTP_HOST"
+    ]
+  }
+}
