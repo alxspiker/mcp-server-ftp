@@ -27,6 +27,17 @@ This Model Context Protocol (MCP) server provides file-management tools for FTP,
 - AES-256-GCM encrypted credential values
 - OS-keychain support for the encryption key
 
+## Where to get it
+
+- [GitHub releases](https://github.com/alxspiker/mcp-server-ftp/releases)
+- [npm](https://www.npmjs.com/package/mcp-server-ftp) (`mcp-server-ftp`)
+- [Smithery](https://smithery.ai/servers/alxspikers-team/mcp-server-ftp)
+- [Agensi](https://www.agensi.io/skills/ftp-ftps-sftp-file-manager)
+- [Glama](https://glama.ai/mcp/servers/alxspiker/mcp-server-ftp)
+- [MseeP.ai](https://mseep.ai/app/alxspiker-mcp-server-ftp)
+
+A Cursor plugin directory listing is pending review.
+
 ## Installation
 
 ### Installing via Smithery
