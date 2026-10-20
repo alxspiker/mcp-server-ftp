@@ -40,12 +40,6 @@ A Cursor plugin directory listing is pending review.
 
 ## Installation
 
-### Installing via Smithery
-
-```bash
-npx -y @smithery/cli install alxspikers-team/mcp-server-ftp --client claude
-```
-
 ### Prerequisites
 
 - Node.js 18.14 or newer
@@ -67,6 +61,14 @@ The server is published as [`mcp-server-ftp`](https://www.npmjs.com/package/mcp-
     }
   }
 }
+```
+
+### Installing via Smithery (deprecated)
+
+> Smithery is shutting down its MCP proxy and connection management on October 31, 2026, and the Smithery CLI is deprecated. This install path will stop working then — install via [npm](#installing-via-npm) instead.
+
+```bash
+npx -y @smithery/cli install alxspikers-team/mcp-server-ftp --client claude
 ```
 
 ### Cursor plugin
