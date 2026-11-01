@@ -20,7 +20,8 @@ for (const protocol of ["ftp", "sftp"]) test(`hosted ${protocol}: MCP calls, bil
     assert.equal(probe.status, 200);
     await client.connect(new StreamableHTTPClientTransport(new URL(`http://127.0.0.1:${app.server.address().port}/mcp`)));
     const tools = await client.listTools();
-    assert.equal(tools.tools.length, 9);
+    assert.equal(tools.tools.length, 12);
+    assert.deepEqual(tools.tools.map((tool) => tool.name).filter((name) => ["backup-directory", "sync-directory", "compare-directories"].includes(name)).sort(), ["backup-directory", "compare-directories", "sync-directory"]);
     assert(!tools.tools.some(x => x.name === "upload-local-file" || x.name === "download-to-local"));
     const read = await client.callTool({name: "download-file", arguments: {remotePath: "/hello.txt"}});
     assert.equal(read.isError, undefined);

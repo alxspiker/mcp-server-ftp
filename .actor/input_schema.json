@@ -1,6 +1,6 @@
 {
-  "title": "FTP connection",
-  "description": "Each task stores one server connection. Enable Validate and pass Actor input in its Standby settings.",
+  "title": "FTP connection and automation",
+  "description": "Standby MCP tasks use the server connection. Leave Operation empty for those tasks. Set it when starting a normal run, an API run, or a Schedule.",
   "type": "object",
   "schemaVersion": 1,
   "properties": {
@@ -8,18 +8,12 @@
       "title": "Protocol",
       "type": "string",
       "editor": "select",
-      "enum": [
-        "ftp",
-        "ftps",
-        "sftp"
-      ],
-      "enumTitles": [
-        "FTP (unencrypted)",
-        "FTPS (explicit TLS)",
-        "SFTP (SSH)"
-      ],
+      "enum": ["ftp", "ftps", "sftp"],
+      "enumTitles": ["FTP (unencrypted)", "FTPS (explicit TLS)", "SFTP (SSH)"],
       "default": "sftp",
-      "description": "Select the connection protocol."
+      "description": "Select the connection protocol.",
+      "sectionCaption": "Server connection",
+      "sectionDescription": "Used by Standby MCP and by backup, sync, and compare."
     },
     "host": {
       "title": "Server hostname",
@@ -67,11 +61,152 @@
       "type": "string",
       "editor": "textfield",
       "description": "Required for SFTP. The server's trusted SHA256 fingerprint, for example SHA256:... Obtain it from your server administrator."
+    },
+    "operation": {
+      "title": "Operation",
+      "type": "string",
+      "editor": "select",
+      "enum": ["backup", "sync", "compare"],
+      "enumTitles": ["Backup a remote directory", "Sync a remote directory and a snapshot", "Compare a remote directory"],
+      "description": "Leave empty for a Standby MCP task. Set this to run one job from the Console, the API, or a Schedule.",
+      "sectionCaption": "Automation job",
+      "sectionDescription": "Ignored while the Actor is running in Standby. A scheduled or manual run uses these fields and then exits."
+    },
+    "remotePath": {
+      "title": "Remote directory",
+      "type": "string",
+      "editor": "textfield",
+      "default": "/",
+      "description": "Directory to back up, sync, or compare. Defaults to /."
+    },
+    "include": {
+      "title": "Include globs",
+      "type": "array",
+      "editor": "stringList",
+      "description": "Only consider files matching at least one pattern. Empty includes every file. A pattern without a slash matches the file name in any directory. ** crosses directories."
+    },
+    "exclude": {
+      "title": "Exclude globs",
+      "type": "array",
+      "editor": "stringList",
+      "description": "Skip files matching any of these patterns. Exclude is applied before include."
+    },
+    "direction": {
+      "title": "Sync direction",
+      "type": "string",
+      "editor": "select",
+      "enum": ["remote-to-store", "store-to-remote"],
+      "enumTitles": ["Remote server to key-value store", "Key-value store to remote server"],
+      "default": "remote-to-store",
+      "description": "Sync only. remote-to-store copies the server into the snapshot. store-to-remote copies a snapshot onto the server."
+    },
+    "dryRun": {
+      "title": "Dry run",
+      "type": "boolean",
+      "editor": "checkbox",
+      "default": false,
+      "description": "Sync only. Report what would change and do not copy or delete anything."
+    },
+    "deleteExtraneous": {
+      "title": "Delete extraneous files",
+      "type": "boolean",
+      "editor": "checkbox",
+      "default": false,
+      "description": "Sync only. Delete destination files that are not in the source. Off by default. A backup always replaces its named snapshot and does not delete remote files."
+    },
+    "snapshotName": {
+      "title": "Snapshot name",
+      "type": "string",
+      "editor": "textfield",
+      "default": "backup",
+      "description": "Name of the snapshot in the key-value store. 1-40 characters: letters, numbers, and !-_.'(). Use a new name to keep an older backup."
+    },
+    "keyValueStoreId": {
+      "title": "Key-value store",
+      "type": "string",
+      "editor": "textfield",
+      "description": "Store id or name for the snapshot. Leave empty to use this run's default key-value store."
+    },
+    "maxFileBytes": {
+      "title": "Maximum file size (bytes)",
+      "type": "integer",
+      "editor": "number",
+      "minimum": 1,
+      "maximum": 104857600,
+      "description": "Files larger than this fail the job with an error before they are stored. Default and hard cap: 100 MiB (104857600). Files are streamed one at a time."
+    },
+    "baseline": {
+      "title": "Compare against",
+      "type": "string",
+      "editor": "select",
+      "enum": ["snapshot", "server"],
+      "enumTitles": ["A previous backup snapshot", "A second server"],
+      "default": "snapshot",
+      "description": "Compare only. A snapshot is a backup already stored under Snapshot name.",
+      "sectionCaption": "Compare",
+      "sectionDescription": "Used when Operation is compare. Added, changed, and removed paths are written to the run dataset."
+    },
+    "compareRemotePath": {
+      "title": "Directory on the second server",
+      "type": "string",
+      "editor": "textfield",
+      "description": "Remote directory for the second server. Leave empty to use the same directory as Remote directory."
+    },
+    "compareProtocol": {
+      "title": "Second server protocol",
+      "type": "string",
+      "editor": "select",
+      "enum": ["ftp", "ftps", "sftp"],
+      "enumTitles": ["FTP (unencrypted)", "FTPS (explicit TLS)", "SFTP (SSH)"],
+      "description": "Required when Compare against is a second server."
+    },
+    "compareHost": {
+      "title": "Second server hostname",
+      "type": "string",
+      "editor": "textfield",
+      "description": "Hostname or IP address of the second server."
+    },
+    "comparePort": {
+      "title": "Second server port",
+      "type": "integer",
+      "editor": "number",
+      "minimum": 1,
+      "maximum": 65535,
+      "description": "Leave empty for port 21 (FTP/FTPS) or 22 (SFTP)."
+    },
+    "compareUsername": {
+      "title": "Second server username",
+      "type": "string",
+      "editor": "textfield",
+      "description": "Username for the second server."
+    },
+    "comparePassword": {
+      "title": "Second server password",
+      "type": "string",
+      "editor": "textfield",
+      "isSecret": true,
+      "description": "Password for the second server, if used."
+    },
+    "comparePrivateKey": {
+      "title": "Second server SSH private key",
+      "type": "string",
+      "editor": "textarea",
+      "isSecret": true,
+      "description": "Optional SFTP private key for the second server."
+    },
+    "comparePassphrase": {
+      "title": "Second server SSH key passphrase",
+      "type": "string",
+      "editor": "textfield",
+      "isSecret": true,
+      "description": "Passphrase for the second server's private key, if encrypted."
+    },
+    "compareHostKeySha256": {
+      "title": "Second server SFTP fingerprint",
+      "type": "string",
+      "editor": "textfield",
+      "description": "Required when the second server uses SFTP. SHA256 host key fingerprint."
     }
   },
-  "required": [
-    "protocol",
-    "host",
-    "username"
-  ]
+  "required": ["protocol", "host", "username"]
 }

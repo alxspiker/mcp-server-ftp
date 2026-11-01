@@ -4,6 +4,8 @@
 
 ### Added
 - Cursor plugin manifest (`.cursor-plugin/plugin.json`) and `mcp.json`, exposing every `FTP_*` setting as a plugin variable.
+- The Apify Actor now runs a one-shot `backup`, `sync`, or `compare` job when it is not started in Standby (`APIFY_META_ORIGIN=STANDBY`). Console, API, and Schedule runs take that path. Standby still serves MCP at `/mcp` and adds `backup-directory`, `sync-directory`, and `compare-directories`. The npm/stdio server is unchanged.
+- Suggested pay-per-event names `automation-run` and `automation-file-transferred`. They are charged only after the work succeeds and are not live prices until they are set in Apify Console.
 
 ## 1.3.0 — 2026-10-15
 
