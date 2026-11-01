@@ -19,7 +19,73 @@ export interface Input {
   passphrase?: string;
   hostKeySha256?: string;
 }
-export type Charge = (eventName: string) => Promise<void>;
+export type Charge = (eventName: string) => Promise<void | { eventChargeLimitReached?: boolean }>;
+export type AutomationRunner = (tool: string, args: unknown) => Promise<{ text: string; structured: Record<string, unknown> }>;
+
+const automationTools = [
+  {
+    name: "backup-directory",
+    description: "Download a remote directory recursively into this run's Apify key-value store snapshot. Include and exclude are glob patterns. A file over maxFileBytes fails the job.",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        remotePath: { type: "string", description: "Remote directory. Defaults to /." },
+        include: { type: "array", items: { type: "string" }, description: "Glob patterns to include. Empty includes every file." },
+        exclude: { type: "array", items: { type: "string" }, description: "Glob patterns to skip." },
+        snapshotName: { type: "string", description: "Snapshot name in the key-value store. Defaults to backup." },
+        maxFileBytes: { type: "integer", minimum: 1, description: "Per-file cap in bytes. Cannot exceed 100 MiB." },
+      },
+    },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+  },
+  {
+    name: "sync-directory",
+    description: "Mirror a remote directory and a key-value store snapshot. direction is remote-to-store or store-to-remote. dryRun reports the plan without writing. deleteExtraneous defaults to false.",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        remotePath: { type: "string", description: "Remote directory. Defaults to /." },
+        direction: { type: "string", enum: ["remote-to-store", "store-to-remote"], description: "Defaults to remote-to-store." },
+        dryRun: { type: "boolean", description: "Report changes without copying or deleting." },
+        deleteExtraneous: { type: "boolean", description: "Delete destination files that are not in the source. Defaults to false." },
+        include: { type: "array", items: { type: "string" }, description: "Glob patterns to include." },
+        exclude: { type: "array", items: { type: "string" }, description: "Glob patterns to skip." },
+        snapshotName: { type: "string", description: "Snapshot name. Defaults to backup." },
+        maxFileBytes: { type: "integer", minimum: 1, description: "Per-file cap in bytes. Cannot exceed 100 MiB." },
+      },
+    },
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
+  },
+  {
+    name: "compare-directories",
+    description: "Diff a remote directory against a backup snapshot or a second server. Writes added, changed, and removed rows. It does not modify either side.",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        remotePath: { type: "string", description: "Remote directory. Defaults to /." },
+        baseline: { type: "string", enum: ["snapshot", "server"], description: "Compare with a snapshot (default) or a second server." },
+        snapshotName: { type: "string", description: "Snapshot name when baseline is snapshot. Defaults to backup." },
+        include: { type: "array", items: { type: "string" }, description: "Glob patterns to include." },
+        exclude: { type: "array", items: { type: "string" }, description: "Glob patterns to skip." },
+        compareProtocol: { type: "string", enum: ["ftp", "ftps", "sftp"] },
+        compareHost: { type: "string" },
+        comparePort: { type: "integer" },
+        compareUsername: { type: "string" },
+        comparePassword: { type: "string" },
+        comparePrivateKey: { type: "string" },
+        comparePassphrase: { type: "string" },
+        compareHostKeySha256: { type: "string" },
+        compareRemotePath: { type: "string", description: "Directory on the second server. Defaults to remotePath." },
+        maxFileBytes: { type: "integer", minimum: 1 },
+      },
+    },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+  },
+];
+
+function isBillingFailure(error: unknown): error is { message: string; billingFailed: true; completed?: boolean; structured?: Record<string, unknown> } {
+  return !!error && typeof error === "object" && (error as { billingFailed?: unknown }).billingFailed === true && typeof (error as { message?: unknown }).message === "string";
+}
 
 export function validateInput(input: Input): void {
   if (!input || !["ftp", "ftps", "sftp"].includes(input.protocol)) throw new Error("protocol must be ftp, ftps, or sftp");
@@ -39,7 +105,7 @@ const events: Record<string, string> = {
 const maxBodyBytes = 12 * 1024 * 1024;
 
 /** A single-tenant process. The Apify platform must isolate each customer's run. */
-export async function startServer(input: Input, charge: Charge, port: number, host = "0.0.0.0"): Promise<{ server: HttpServer; close: () => Promise<void> }> {
+export async function startServer(input: Input, charge: Charge, port: number, host = "0.0.0.0", runAutomation?: AutomationRunner): Promise<{ server: HttpServer; close: () => Promise<void> }> {
   validateInput(input);
   const temp = await mkdtemp(join(tmpdir(), "ftp-mcp-"));
   const env: Record<string, string> = {
@@ -78,12 +144,27 @@ export async function startServer(input: Input, charge: Charge, port: number, ho
       }
       const body: unknown = JSON.parse(Buffer.concat(chunks).toString("utf8"));
       const mcp = new Server({ name: "ftp-mcp-apify", version: "1.0.0" }, { capabilities: { tools: {} } });
-      mcp.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: available }));
+      mcp.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: [...available, ...automationTools] }));
       mcp.setRequestHandler(CallToolRequestSchema, async (request) => {
         const name = request.params.name;
-        if (!Object.prototype.hasOwnProperty.call(events, name)) throw new Error("Unknown or unavailable tool");
+        const automationTool = automationTools.some((tool) => tool.name === name);
+        if (!automationTool && !Object.prototype.hasOwnProperty.call(events, name)) throw new Error("Unknown or unavailable tool");
         const run = async () => {
           if (billingFailed) throw new Error("Billing is unavailable; no operation was attempted. Restart the Actor after resolving billing.");
+          if (automationTool) {
+            if (!runAutomation) return { isError: true, content: [{ type: "text" as const, text: "Automation jobs are not available in this run." }] };
+            try {
+              const outcome = await runAutomation(name, request.params.arguments);
+              return { content: [{ type: "text" as const, text: outcome.text }], structuredContent: outcome.structured };
+            } catch (error) {
+              if (isBillingFailure(error)) {
+                billingFailed = true;
+                if (error.completed) return { content: [{ type: "text" as const, text: error.message }], structuredContent: error.structured };
+                return { isError: true, content: [{ type: "text" as const, text: error.message }] };
+              }
+              return { isError: true, content: [{ type: "text" as const, text: error instanceof Error ? error.message : String(error) }] };
+            }
+          }
           const result = await client.callTool({ name, arguments: request.params.arguments });
           if (!result.isError) {
             try { await charge(events[name]); }

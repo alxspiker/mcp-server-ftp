@@ -71,7 +71,8 @@ function quietLog() {
   return log;
 }
 
-// Minimal SFTP v3 file server over `root`: enough for open/read/write/close/stat/realpath.
+// Minimal SFTP v3 file server over `root`: open/read/write/close/stat/realpath plus
+// directory list, mkdir, and delete so automation tests can walk a tree.
 function serveSftp(sftp, root, gate) {
   const handles = new Map();
   let next = 0;
@@ -83,6 +84,13 @@ function serveSftp(sftp, root, gate) {
   const fail = (reqid, err) =>
     sftp.status(reqid, err && err.code === "ENOENT" ? STATUS_CODE.NO_SUCH_FILE : STATUS_CODE.FAILURE, err ? err.message : "failure");
   const handleOf = (buf) => (buf.length === 4 ? handles.get(buf.readUInt32BE(0)) : undefined);
+  const listed = (dir, name) => {
+    const st = fs.statSync(path.join(dir, name));
+    const directory = st.isDirectory();
+    // ssh2-sftp-client reads the type from the first character of longname.
+    const longname = `${directory ? "d" : "-"}rw-r--r-- 1 0 0 ${st.size} Jan 1 00:00 ${name}`;
+    return { filename: name, longname, attrs: attrsOf(st) };
+  };
   const attrsOf = (st) => ({
     mode: st.mode,
     uid: st.uid,
@@ -129,6 +137,10 @@ function serveSftp(sftp, root, gate) {
     const h = handles.get(n);
     if (!h) return fail(reqid);
     handles.delete(n);
+    if (typeof h.fd !== "number") {
+      sftp.status(reqid, STATUS_CODE.OK);
+      return;
+    }
     fs.close(h.fd, (err) => (err ? fail(reqid, err) : sftp.status(reqid, STATUS_CODE.OK)));
   });
   sftp.on("FSTAT", (reqid, handle) => {
@@ -148,5 +160,43 @@ function serveSftp(sftp, root, gate) {
   sftp.on("REALPATH", (reqid, remote) => {
     const normalised = path.posix.normalize("/" + (remote === "." ? "" : remote));
     sftp.name(reqid, [{ filename: normalised, longname: normalised, attrs: {} }]);
+  });
+  sftp.on("OPENDIR", (reqid, filename) => {
+    const p = local(filename);
+    if (!p) return fail(reqid);
+    fs.stat(p, (err, st) => {
+      if (err) return fail(reqid, err);
+      if (!st.isDirectory()) return sftp.status(reqid, STATUS_CODE.FAILURE, "not a directory");
+      fs.readdir(p, (readErr, names) => {
+        if (readErr) return fail(reqid, readErr);
+        const h = Buffer.alloc(4);
+        h.writeUInt32BE(next, 0);
+        handles.set(next++, { entries: names.map((name) => listed(p, name)), cursor: 0 });
+        sftp.handle(reqid, h);
+      });
+    });
+  });
+  sftp.on("READDIR", (reqid, handle) => {
+    const h = handleOf(handle);
+    if (!h || !Array.isArray(h.entries)) return fail(reqid);
+    if (h.cursor >= h.entries.length) return sftp.status(reqid, STATUS_CODE.EOF);
+    const batch = h.entries.slice(h.cursor);
+    h.cursor = h.entries.length;
+    sftp.name(reqid, batch);
+  });
+  sftp.on("MKDIR", (reqid, filename) => {
+    const p = local(filename);
+    if (!p) return fail(reqid);
+    fs.mkdir(p, { recursive: true }, (err) => (err ? fail(reqid, err) : sftp.status(reqid, STATUS_CODE.OK)));
+  });
+  sftp.on("REMOVE", (reqid, filename) => {
+    const p = local(filename);
+    if (!p) return fail(reqid);
+    fs.unlink(p, (err) => (err ? fail(reqid, err) : sftp.status(reqid, STATUS_CODE.OK)));
+  });
+  sftp.on("RMDIR", (reqid, filename) => {
+    const p = local(filename);
+    if (!p) return fail(reqid);
+    fs.rmdir(p, (err) => (err ? fail(reqid, err) : sftp.status(reqid, STATUS_CODE.OK)));
   });
 }

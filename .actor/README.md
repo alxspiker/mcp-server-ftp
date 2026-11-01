@@ -1,24 +1,35 @@
-# FTP, FTPS & SFTP MCP Server
+# FTP, FTPS & SFTP server
 
-Connect an MCP-compatible AI assistant to your file server. List directories, read and upload files, edit or append text, create and delete directories, and rename or delete files. Each Apify task holds one server connection.
+This Actor talks to an FTP, FTPS, or SFTP server in two ways.
 
-## Connect your server
+**Standby MCP.** Save a task with your server connection and leave Operation empty. In the task's settings, enable **Validate and pass Actor input**. Open the Server tab, copy the MCP URL, and add `/mcp` if it is not already in the path. Connect an MCP client with `Authorization: Bearer <Apify token>`. Use a private, scoped token.
 
-1. Save this Actor as a new task and enter your server's protocol, hostname, username and password, or an SFTP private key. Apify stores password, private key and passphrase fields as secret inputs.
-2. For SFTP, enter the server's SHA256 host-key fingerprint. Obtain it from your server administrator through a trusted channel. FTPS checks the server certificate. Plain FTP sends credentials and content without encryption.
-3. In the task's Settings, enable **Validate and pass Actor input**. Open its Server tab and copy the **MCP server URL**. Use the task URL rather than the Actor's general URL so that your connection settings are passed to its run.
-4. Add that URL to an MCP client that supports Streamable HTTP and an `Authorization: Bearer <Apify token>` header. Use a suitably scoped Apify token and keep it private.
+**Scheduled or manual job.** Set Operation to backup, sync, or compare, then run the task from Console, the API, or an Apify Schedule. The run does the job and exits. A schedule must target the task, not the Standby URL. Console → Schedules → create a schedule → choose the task and how often it should run.
 
-Create a separate task for each server. Runs must use Apify's single-tenant Standby configuration. See the [setup and security notes](https://github.com/alxspiker/mcp-server-ftp/blob/main/APIFY.md) for details.
+Create a separate task for each server. Standby runs must stay on Apify's single-tenant configuration. Passwords, private keys, and passphrases are secret inputs. For SFTP, enter the server's SHA256 host-key fingerprint from your server administrator. FTPS checks the certificate. Plain FTP sends credentials and file contents without encryption.
 
-## Operations and pricing
+## Jobs
 
-Successful directory listings cost $0.002 each; file reads cost $0.005; uploads, edits and appends cost $0.01; and file or directory management operations cost $0.01. Failed operations do not trigger an event charge. Standby platform usage is also charged separately, including idle time before the run stops. Prices are USD.
+- **Backup** copies a remote directory into a named snapshot in the run's key-value store (or the store id you set). Include and exclude use glob patterns. The snapshot is replaced. Files on the server are not deleted. Pick another snapshot name to keep an older copy.
+- **Sync** mirrors that directory and a snapshot. Direction is remote-to-store or store-to-remote. Dry run only lists what would change. Delete extraneous files is off unless you turn it on.
+- **Compare** diffs the directory against a snapshot or a second server. Added, changed, and removed paths are written to the dataset. Neither side is modified.
 
-## File handling and limits
+Files are copied one at a time. Anything over the maximum file size (100 MiB unless you set a lower limit) fails the job with an error that names the file.
 
-Use `upload-file` and `download-file` for text or base64-encoded binary content. The local-path upload and download tools from the desktop package are not available: this Actor cannot access files on your own device. Incoming MCP requests are capped at 12 MiB. Downloads and edits buffer the entire file in memory; a maximum safe download size has not been established, so avoid large files.
+The same jobs are available inside Standby as the MCP tools `backup-directory`, `sync-directory`, and `compare-directories`. They use the task's saved connection.
 
-Operations are serialized within one run. Separate runs are not coordinated; avoid conflicting concurrent writes to the same server. An operation may succeed even if a subsequent billing request fails. If that happens, the response reports the completed operation and the run stops accepting further operations.
+## Pricing
 
-The [original open-source package](https://github.com/alxspiker/mcp-server-ftp) remains available for local use.
+Successful directory listings cost $0.002 each. File reads cost $0.005. Uploads, edits, and appends cost $0.01. File or directory management costs $0.01. Failed operations are not charged. Standby platform usage, including idle time, is billed separately. Prices are USD.
+
+Backup, sync, and compare are charged only after the work succeeds: one `automation-run` event per finished job, and one `automation-file-transferred` event per file that was actually copied. Dry-runs, compares, skips, and deletes do not charge the per-file event.
+
+Those two automation prices are **suggested** ($0.02 per job and $0.005 per copied file) and are **not live** until the Actor owner adds the events in Apify Console. See the [setup notes](https://github.com/alxspiker/mcp-server-ftp/blob/main/APIFY.md).
+
+## File handling
+
+Use `upload-file` and `download-file` for text or base64 content. The desktop package's local-path tools are not available here. Incoming MCP requests are capped at 12 MiB. One-file MCP downloads still buffer the file; automation transfers stream instead and stop at the file-size cap.
+
+Operations in one run happen one after another. Different runs do not coordinate, so avoid overlapping writes to the same server. If billing fails after a successful operation, the response says so and the run stops accepting more work. The transfer is not repeated.
+
+The [open-source package](https://github.com/alxspiker/mcp-server-ftp) is still the one to run on your own computer.

@@ -2,7 +2,7 @@
   "actorSpecification": 1,
   "name": "ftp-mcp-server",
   "title": "FTP and SFTP MCP Server",
-  "description": "Connect an MCP client to an FTP, FTPS or SFTP server.",
+  "description": "Connect an MCP client to an FTP, FTPS, or SFTP server, or run a backup, sync, or compare job.",
   "version": "1.0",
   "input": "./input_schema.json",
   "dockerfile": "./Dockerfile",
@@ -12,7 +12,7 @@
   "output": {
     "actorOutputSchemaVersion": 1,
     "title": "MCP response output",
-    "description": "Results are returned in MCP responses; no run output is stored.",
+    "description": "Standby MCP results are returned on /mcp. Automation jobs write a summary, and compare or sync details, to the dataset. Backup and sync files go in the key-value store.",
     "type": "object",
     "properties": {}
   }
