@@ -148,7 +148,7 @@ interface NormalizedJob {
   dryRun: boolean;
   deleteExtraneous: boolean;
   snapshotName: string;
-  storeId?: string;
+  storeId: string;
   maxFileBytes: number;
   baseline: "snapshot" | "server";
   compare?: { connection: ConnectionInput; remotePath: string };
@@ -373,12 +373,12 @@ async function commitMirror(
   const summary = summarizeMirror(operation, job, mirrored.files.length, bytes, transferred, deleted, skipped, warnings);
   const summaryRow: Record<string, unknown> = operation === "backup"
     ? {
-      operation, snapshotName: job.snapshotName, remotePath: job.remotePath, fileCount: mirrored.files.length, bytes,
+      operation, snapshotName: job.snapshotName, storeId: job.storeId, remotePath: job.remotePath, fileCount: mirrored.files.length, bytes,
       transferred, unchanged: skipped, removed: deleted, manifestKey: manifestRecordKey(job.snapshotName), warnings,
     }
     : {
       operation, action: "summary", direction: job.direction, dryRun: job.dryRun, deleteExtraneous: job.deleteExtraneous,
-      remotePath: job.remotePath, snapshotName: job.snapshotName, transferred, deleted, skipped, warnings,
+      remotePath: job.remotePath, snapshotName: job.snapshotName, storeId: job.storeId, transferred, deleted, skipped, warnings,
     };
   const rows = operation === "sync"
     ? [...mirrored.actions.map((action) => ({ operation, direction: job.direction, dryRun: job.dryRun, remotePath: job.remotePath, snapshotName: job.snapshotName, ...action })), summaryRow]
@@ -462,7 +462,7 @@ async function syncStoreToRemote(job: NormalizedJob, services: AutomationService
       : `Synced store-to-remote snapshot "${job.snapshotName}": transferred ${count(transferred, "file")}, deleted ${count(deleted, "file")}, skipped ${count(skipped, "file")}.`;
     const summaryRow: Record<string, unknown> = {
       operation: "sync", action: "summary", direction: job.direction, dryRun: job.dryRun, deleteExtraneous: job.deleteExtraneous,
-      remotePath: job.remotePath, snapshotName: job.snapshotName,
+      remotePath: job.remotePath, snapshotName: job.snapshotName, storeId: job.storeId,
       transferred: job.dryRun ? wouldTransfer : transferred,
       deleted: job.dryRun ? wouldDelete : deleted,
       skipped, warnings: [],
@@ -785,17 +785,20 @@ function normalizeJob(input: AutomationInput): NormalizedJob {
     validateInput(connection);
     compare = { connection, remotePath: normalizeRemoteRoot(input.compareRemotePath ?? input.remotePath) };
   }
+  const remotePath = normalizeRemoteRoot(input.remotePath);
+  const identity = JSON.stringify([input.protocol, input.host.toLowerCase(), input.port ?? (input.protocol === "sftp" ? 22 : 21), input.username, remotePath]);
+  const defaultStore = `ftp-snapshot-${createHash("sha256").update(identity).digest("hex").slice(0, 32)}`;
   return {
     connection: input,
     operation: input.operation,
-    remotePath: normalizeRemoteRoot(input.remotePath),
+    remotePath,
     include: stringList(input.include, "include"),
     exclude: stringList(input.exclude, "exclude"),
     direction: input.direction === "store-to-remote" ? "store-to-remote" : "remote-to-store",
     dryRun: input.operation === "sync" && optionalBoolean(input.dryRun, "dryRun"),
     deleteExtraneous: optionalBoolean(input.deleteExtraneous, "deleteExtraneous"),
     snapshotName: normalizeSnapshotName(input.snapshotName),
-    storeId: optionalString(input.keyValueStoreId, "keyValueStoreId"),
+    storeId: optionalString(input.keyValueStoreId, "keyValueStoreId") ?? defaultStore,
     maxFileBytes: resolveMaxFileBytes(input.maxFileBytes),
     baseline,
     compare,

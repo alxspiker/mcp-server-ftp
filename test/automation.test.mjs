@@ -92,6 +92,38 @@ test("glob filters match file names and directory trees", () => {
   assert.equal(matchGlob("**/*.txt", "sub/keep.txt"), true);
 });
 
+test("separate jobs reuse persistent stores and isolate different directories", async () => {
+  const root = await mkdtemp(join(tmpdir(), "auto-persistent-"));
+  await writeTree(root, { "a/file.txt": "alpha", "b/file.txt": "beta" });
+  const target = await startFtp(root);
+  const stores = new Map();
+  const ids = [];
+  const services = {
+    openStore: async (id) => {
+      assert.match(id, /^ftp-snapshot-[a-f0-9]{32}$/);
+      ids.push(id);
+      if (!stores.has(id)) stores.set(id, memoryBackend());
+      return stores.get(id).store;
+    },
+    dataset: { async push() {} },
+    charge: async () => {},
+  };
+  try {
+    const input = { ...connectionOf(target), remotePath: "/a" };
+    await runAutomation({ ...input, operation: "backup" }, services);
+    const compared = await runAutomation({ ...input, operation: "compare" }, services);
+    assert.match(compared.summary, /0 added, 0 changed, 0 removed/);
+    await runAutomation({ ...input, operation: "backup", remotePath: "/b" }, services);
+    assert.equal(ids[0], ids[1]);
+    assert.notEqual(ids[0], ids[2]);
+    assert.deepEqual(fileBodies(stores.get(ids[0])), { "file.txt": "alpha" });
+    assert.deepEqual(fileBodies(stores.get(ids[2])), { "file.txt": "beta" });
+  } finally {
+    await target.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test("backup downloads a filtered tree and bills after the snapshot is saved", async () => {
   const root = await mkdtemp(join(tmpdir(), "auto-backup-"));
   await writeTree(root, {

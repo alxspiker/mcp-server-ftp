@@ -25,7 +25,7 @@ export type AutomationRunner = (tool: string, args: unknown) => Promise<{ text: 
 const automationTools = [
   {
     name: "backup-directory",
-    description: "Download a remote directory recursively into this run's Apify key-value store snapshot. Include and exclude are glob patterns. A file over maxFileBytes fails the job.",
+    description: "Download a remote directory recursively into a persistent Apify key-value store snapshot. Include and exclude are glob patterns. A file over maxFileBytes fails the job.",
     inputSchema: {
       type: "object" as const,
       properties: {

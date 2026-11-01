@@ -10,11 +10,13 @@ Create a separate task for each server. Standby runs must stay on Apify's single
 
 ## Jobs
 
-- **Backup** copies a remote directory into a named snapshot in the run's key-value store (or the store id you set). Include and exclude use glob patterns. The snapshot is replaced. Files on the server are not deleted. Pick another snapshot name to keep an older copy.
+- **Backup** copies a remote directory into a snapshot in a persistent named key-value store (or the store ID you set). Include and exclude use glob patterns. The snapshot is replaced. Files on the server are not deleted. Pick another snapshot name to keep an older copy.
 - **Sync** mirrors that directory and a snapshot. Direction is remote-to-store or store-to-remote. Dry run only lists what would change. Delete extraneous files is off unless you turn it on.
 - **Compare** diffs the directory against a snapshot or a second server. Added, changed, and removed paths are written to the dataset. Neither side is modified.
 
 Files are copied one at a time. Anything over the maximum file size (100 MiB unless you set a lower limit) fails the job with an error that names the file.
+
+By default, the store is selected from the server, username, and remote directory, so scheduled runs reuse the same snapshot. Find the store name in the job's summary output (`storeId`). To restore to a different server or directory, enter that name in Key-value store. Named stores persist until deleted and may incur storage charges. Snapshots from older runs that used an unnamed default store remain there; supply that store's ID to access them.
 
 The same jobs are available inside Standby as the MCP tools `backup-directory`, `sync-directory`, and `compare-directories`. They use the task's saved connection.
 
@@ -24,7 +26,7 @@ Successful directory listings cost $0.002 each. File reads cost $0.005. Uploads,
 
 Backup, sync, and compare are charged only after the work succeeds: one `automation-run` event per finished job, and one `automation-file-transferred` event per file that was actually copied. Dry-runs, compares, skips, and deletes do not charge the per-file event.
 
-Those two automation prices are **suggested** ($0.02 per job and $0.005 per copied file) and are **not live** until the Actor owner adds the events in Apify Console. See the [setup notes](https://github.com/alxspiker/mcp-server-ftp/blob/main/APIFY.md).
+Automation costs $0.02 per finished job and $0.005 per copied file. See the [setup notes](https://github.com/alxspiker/mcp-server-ftp/blob/main/APIFY.md).
 
 ## File handling
 

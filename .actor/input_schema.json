@@ -125,7 +125,7 @@
       "title": "Key-value store",
       "type": "string",
       "editor": "textfield",
-      "description": "Store id or name for the snapshot. Leave empty to use this run's default key-value store."
+      "description": "Store ID or name for the snapshot. Leave empty to use a persistent named store unique to this server, username, and directory. Use the same store when restoring to a different server or directory."
     },
     "maxFileBytes": {
       "title": "Maximum file size (bytes)",

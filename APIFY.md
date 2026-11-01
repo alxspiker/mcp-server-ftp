@@ -32,7 +32,7 @@ Set `operation` to `backup`, `sync`, or `compare`. The same connection fields as
 
 Each file is streamed to a temporary file and then to the store or the server. Only one file is in flight. A file larger than `maxFileBytes` fails the job. The default and the hard cap are 100 MiB (104857600 bytes). The error names the path and both sizes. Symlinks are not followed.
 
-Snapshots live in the run's default key-value store, or in `keyValueStoreId` when that is set. The manifest record is `backup-<snapshotName>-manifest`. File records are separate keys named in the manifest. The manifest stores paths, sizes, and SHA-256 checksums. It does not store the password, private key, or passphrase.
+By default, snapshots use a persistent named store derived from the protocol, host, port, username, and remote directory. Runs with the same connection and directory reuse the store. To restore or compare against a different server or directory, supply the original store ID or name as `keyValueStoreId`. Named stores remain until deleted and can incur storage charges. Older snapshots created in a run's default store remain there; set `keyValueStoreId` to that store's ID to access them. The manifest record is `backup-<snapshotName>-manifest`. It contains paths, sizes, and SHA-256 checksums, but no password, private key, or passphrase.
 
 Compare and sync write one dataset row per path, then a summary row. Compare statuses are `added`, `changed`, and `removed`. `added` means the path is on the primary server and not in the baseline. `removed` means the opposite. Backup writes a summary row; the file list is the manifest.
 
@@ -57,12 +57,12 @@ The published Actor uses pay-per-event pricing. These four events were configure
 | `write-file` | upload-file, edit-file, append-file | 0.01 |
 | `manage-files` | create-directory, delete-file, delete-directory, rename-file | 0.01 |
 
-Automation events are charged only after the corresponding work has succeeded. They are **not** configured on the Actor yet. The prices below are **SUGGESTED**. The owner sets the live prices in Console. Until those event names exist, the Apify SDK logs a warning and does not bill them; the job still runs.
+The published Actor also charges these automation events:
 
-| Event name | When it is charged | Suggested price (USD) | Status |
-| --- | --- | ---: | --- |
-| `automation-run` | Once after a backup, sync, or compare job finishes, including a sync dry-run | 0.02 | **SUGGESTED** |
-| `automation-file-transferred` | Once per file actually copied by backup or sync. Skips, deletes, compare, and dry-runs do not charge this | 0.005 | **SUGGESTED** |
+| Event name | When it is charged | Price (USD) |
+| --- | --- | ---: |
+| `automation-run` | Once after a backup, sync, or compare job finishes, including a sync dry-run | 0.02 |
+| `automation-file-transferred` | Once per file actually copied by backup or sync. Skips, deletes, compare, and dry-runs do not charge this | 0.005 |
 
 For backup and remote-to-store sync, file events are charged after the snapshot manifest has been saved. For store-to-remote sync, each file event is charged after that upload succeeds. If charging throws, the transfer is not repeated. The run reports that the work completed and billing failed, and further operations in that process are disabled. Billing and the file transfer are not one transaction.
 
@@ -81,6 +81,6 @@ Apify authenticates Standby requests before they reach the container. The applic
 This repository does not publish the Actor or change its prices.
 
 1. Build the Actor from the commit you want to run.
-2. Under pay per event, add `automation-run` and `automation-file-transferred` if you want those jobs to be billed. The table above is a suggestion, not a live price.
+2. For a separate deployment, configure its own pay-per-event prices.
 3. Keep Standby single-tenant, with input passing turned on, for MCP tasks.
 4. For backups and syncs, create a task with `operation` set and attach an Apify Schedule to that task.
