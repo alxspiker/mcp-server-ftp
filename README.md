@@ -1,7 +1,7 @@
 [![MseeP.ai Security Assessment Badge](https://mseep.net/pr/alxspiker-mcp-server-ftp-badge.png)](https://mseep.ai/app/alxspiker-mcp-server-ftp)
 
 
-For the Apify-hosted MCP adapter, setup, security requirements, and pricing events, see [APIFY.md](APIFY.md).
+Use the [hosted FTP MCP server on Apify](https://apify.com/theprogrammer/mcp-server-ftp) for remote access, or install the free local version below. See [APIFY.md](APIFY.md) for hosted setup and pricing details.
 # MCP Server for FTP, FTPS, and SFTP Access
 
 [![smithery badge](https://smithery.ai/badge/alxspikers-team/mcp-server-ftp)](https://smithery.ai/servers/alxspikers-team/mcp-server-ftp)
@@ -31,6 +31,7 @@ This Model Context Protocol (MCP) server provides file-management tools for FTP,
 
 ## Where to get it
 
+- [Apify Store](https://apify.com/theprogrammer/mcp-server-ftp) — hosted MCP server with pay-per-event pricing
 - [GitHub releases](https://github.com/alxspiker/mcp-server-ftp/releases)
 - [npm](https://www.npmjs.com/package/mcp-server-ftp) (`mcp-server-ftp`)
 - [Smithery](https://smithery.ai/servers/alxspikers-team/mcp-server-ftp)
