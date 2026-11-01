@@ -97,7 +97,8 @@ export async function startServer(input: Input, charge: Charge, port: number, ho
         };
         const result = queue.then(run, run); queue = result.catch(() => {}); return result;
       });
-      // The server only emits JSON; permit JSON-only HTTP clients such as Apify Console.\n      if (req.headers.accept === "application/json") req.headers.accept = "application/json, text/event-stream";\n      const httpTransport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
+      // The server only emits JSON; permit JSON-only HTTP clients such as Apify Console.\n      if (req.headers.accept === "application/json") req.headers.accept = "application/json, text/event-stream";
+      const httpTransport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });\n      const httpTransport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
       res.on("close", () => { void mcp.close(); });
       await mcp.connect(httpTransport);
       await httpTransport.handleRequest(req, res, body);
