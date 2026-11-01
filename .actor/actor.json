@@ -7,5 +7,6 @@
   "input": "./input_schema.json",
   "dockerfile": "./Dockerfile",
   "usesStandbyMode": true,
-  "webServerMcpPath": "/mcp"
+  "webServerMcpPath": "/mcp",
+  "webServerSchema": "./openapi.json"
 }
