@@ -120,7 +120,7 @@ export class SftpClient {
       const list = await client.list(remotePath);
       return list.map((item) => ({
         name: item.name,
-        type: item.type === "d" ? "directory" : "file",
+        type: item.type === "d" ? "directory" : item.type === "-" ? "file" : item.type === "l" ? "symlink" : "other",
         size: item.size,
         modifiedDate: new Date(item.modifyTime).toISOString(),
       }));

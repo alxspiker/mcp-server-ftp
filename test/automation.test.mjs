@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { Readable } from "node:stream";
@@ -90,6 +90,40 @@ test("glob filters match file names and directory trees", () => {
   assert.equal(matchGlob("sub/*.txt", "sub/keep.txt"), true);
   assert.equal(matchGlob("sub/*.txt", "sub/nested/keep.txt"), false);
   assert.equal(matchGlob("**/*.txt", "sub/keep.txt"), true);
+});
+
+test("sync preserves excluded directory contents while deleting other extraneous files", async () => {
+  const root = await mkdtemp(join(tmpdir(), "auto-excluded-"));
+  await writeTree(root, { "cache/nested/a.txt": "protected", "remove.txt": "obsolete", "keep.txt": "keep" });
+  const target = await startFtp(root);
+  const backend = memoryBackend();
+  const services = servicesFor(backend, async () => {});
+  try {
+    await runAutomation({ ...connectionOf(target), operation: "backup" }, services);
+    await rm(join(root, "remove.txt"));
+    await runAutomation({ ...connectionOf(target), operation: "sync", exclude: ["cache"], deleteExtraneous: true }, services);
+    assert.deepEqual(fileBodies(backend), { "cache/nested/a.txt": "protected", "keep.txt": "keep" });
+  } finally {
+    await target.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("SFTP backup skips symlinks to files, directories, and missing targets", async () => {
+  const root = await mkdtemp(join(tmpdir(), "auto-links-"));
+  await writeTree(root, { "file.txt": "safe", "nested/item.txt": "inside" });
+  await symlink("file.txt", join(root, "file-link"));
+  await symlink("nested", join(root, "dir-link"));
+  await symlink("missing", join(root, "broken-link"));
+  const target = await startSftp(root);
+  const backend = memoryBackend();
+  try {
+    await runAutomation({ ...connectionOf(target), operation: "backup" }, servicesFor(backend, async () => {}));
+    assert.deepEqual(fileBodies(backend), { "file.txt": "safe", "nested/item.txt": "inside" });
+  } finally {
+    await target.close();
+    await rm(root, { recursive: true, force: true });
+  }
 });
 
 test("separate jobs reuse persistent stores and isolate different directories", async () => {

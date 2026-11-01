@@ -85,10 +85,10 @@ function serveSftp(sftp, root, gate) {
     sftp.status(reqid, err && err.code === "ENOENT" ? STATUS_CODE.NO_SUCH_FILE : STATUS_CODE.FAILURE, err ? err.message : "failure");
   const handleOf = (buf) => (buf.length === 4 ? handles.get(buf.readUInt32BE(0)) : undefined);
   const listed = (dir, name) => {
-    const st = fs.statSync(path.join(dir, name));
+    const st = fs.lstatSync(path.join(dir, name));
     const directory = st.isDirectory();
     // ssh2-sftp-client reads the type from the first character of longname.
-    const longname = `${directory ? "d" : "-"}rw-r--r-- 1 0 0 ${st.size} Jan 1 00:00 ${name}`;
+    const longname = `${st.isSymbolicLink() ? "l" : directory ? "d" : "-"}rw-r--r-- 1 0 0 ${st.size} Jan 1 00:00 ${name}`;
     return { filename: name, longname, attrs: attrsOf(st) };
   };
   const attrsOf = (st) => ({

@@ -589,7 +589,11 @@ async function walk(client: RemoteClient, root: string, include: string[], exclu
 }
 
 function selected(relativePath: string, include: string[], exclude: string[]): boolean {
-  if (exclude.some((pattern) => matchGlob(pattern, relativePath))) return false;
+  const parts = relativePath.split("/");
+  for (let i = 1; i <= parts.length; i += 1) {
+    const path = parts.slice(0, i).join("/");
+    if (exclude.some((pattern) => matchGlob(pattern, path))) return false;
+  }
   if (include.length === 0) return true;
   return include.some((pattern) => matchGlob(pattern, relativePath));
 }
