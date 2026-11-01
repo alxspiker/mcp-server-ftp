@@ -8,5 +8,12 @@
   "dockerfile": "./Dockerfile",
   "usesStandbyMode": true,
   "webServerMcpPath": "/mcp",
-  "webServerSchema": "./openapi.json"
+  "webServerSchema": "./openapi.json",
+  "output": {
+    "actorOutputSchemaVersion": 1,
+    "title": "MCP response output",
+    "description": "Results are returned in MCP responses; no run output is stored.",
+    "type": "object",
+    "properties": {}
+  }
 }
