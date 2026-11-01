@@ -1,8 +1,8 @@
 # Apify-hosted FTP MCP server
 
-The Apify Actor provides a Streamable HTTP MCP endpoint backed by the existing stdio FTP server. The ordinary npm/stdio entry point is unchanged. The hosted adapter is for **single-tenant Standby runs only**: a run contains one user's connection credentials. Do not deploy it in a shared/multi-tenant Standby pool.
+The [published Apify Actor](https://apify.com/theprogrammer/mcp-server-ftp) provides a Streamable HTTP MCP endpoint backed by the existing stdio FTP server. The ordinary npm/stdio entry point is unchanged. The hosted adapter is for **single-tenant Standby runs only**: a run contains one user's connection credentials. Do not deploy it in a shared/multi-tenant Standby pool.
 
-## Set up the Actor
+## Set up your own Actor deployment
 
 1. Create an Actor in Apify Console and configure its source to use this GitHub repository and the desired branch. Build it; `.actor/actor.json` selects the Actor-specific Dockerfile and `/mcp` endpoint. Connecting GitHub and pushing code alone does not create or publish an Actor.
 2. In Actor Standby settings, enable Standby, select a **single-tenant** deployment, and enable **Validate and pass Actor input**. Do not lock settings that users need to override in their tasks. Verify the live setting in Console before use; this repository cannot enforce the platform's isolation setting.
@@ -13,19 +13,19 @@ The SFTP host key SHA256 fingerprint is required; obtain it through a trusted ch
 
 ## Pricing
 
-Configure pay-per-event monetization in Apify Console before selling access. The code charges these event names after a successful operation:
+The published Actor uses pay-per-event pricing. The following prices were configured in Apify Console on October 31, 2026. The code charges the corresponding event after a successful operation:
 
-| Event name | Operations | Initial proposed price (USD) |
+| Event name | Operations | Price per operation (USD) |
 | --- | --- | ---: |
 | `list-directory` | list-directory | 0.002 |
 | `read-file` | download-file | 0.005 |
 | `write-file` | upload-file, edit-file, append-file | 0.01 |
 | `manage-files` | create-directory, delete-file, delete-directory, rename-file | 0.01 |
 
-These prices are suggestions, not configured prices. Confirm actual costs and test real charges and spending limits in Apify before publishing. Standby users also pay platform usage, including idle time until shutdown. If charging throws after an operation has already succeeded, the result states that the operation completed and further operations in that run are disabled; it is not retried. Billing and FTP changes cannot be made as a single atomic transaction.
+A live FTPS listing succeeded in an owner-account test after monetization was enabled. An actual customer charge and the enforcement of customer spending limits have not yet been independently verified. For a separate deployment, configure and verify its pricing in Apify Console. Standby users also pay platform usage, including idle time until shutdown. If charging throws after an operation has already succeeded, the result states that the operation completed and further operations in that run are disabled; it is not retried. Billing and FTP changes cannot be made as a single atomic transaction.
 
 ## Limits
 
 `upload-local-file` and `download-to-local` are intentionally unavailable: a hosted process cannot access the customer's computer. Use `upload-file` and `download-file` for text or base64 binary content. Incoming MCP requests are capped at 12 MiB. Downloads and edits currently buffer entire files in memory, so do not use large files; there is no tested maximum download size. The server serializes operations within a single Actor run; separate concurrent runs for the same FTP account are not coordinated, so clients must avoid concurrent conflicting writes. A new connection is established for each FTP operation.
 
-Apify authenticates requests before forwarding them to Standby; the application does not independently authenticate a direct container request. Its security depends on Apify's access controls and single-tenant run isolation. Review exposure, network access, limits, billing, and credential handling with a real deployed test before making the Actor public.
+Apify authenticates requests before forwarding them to Standby; the application does not independently authenticate a direct container request. Its security depends on Apify's access controls and single-tenant run isolation. Cross-customer isolation has not yet been independently verified with separate customer accounts. Review isolation, network access, limits, billing, and credential handling when operating a deployment.
