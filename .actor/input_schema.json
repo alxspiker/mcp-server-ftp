@@ -1,0 +1,17 @@
+{
+  "title": "FTP connection",
+  "description": "Each task stores one server connection. Enable Validate and pass Actor input in its Standby settings.",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "protocol": { "title": "Protocol", "type": "string", "editor": "select", "enum": ["ftp", "ftps", "sftp"], "enumTitles": ["FTP (unencrypted)", "FTPS (explicit TLS)", "SFTP (SSH)"], "default": "sftp" },
+    "host": { "title": "Server hostname", "type": "string", "editor": "textfield", "description": "Hostname or IP address, without a URL or path." },
+    "port": { "title": "Port", "type": "integer", "editor": "number", "minimum": 1, "maximum": 65535, "description": "Leave empty for port 21 (FTP/FTPS) or 22 (SFTP)." },
+    "username": { "title": "Username", "type": "string", "editor": "textfield" },
+    "password": { "title": "Password", "type": "string", "editor": "textfield", "isSecret": true },
+    "privateKey": { "title": "SSH private key", "type": "string", "editor": "textarea", "isSecret": true, "description": "Optional SFTP private key in PEM or OpenSSH format." },
+    "passphrase": { "title": "SSH key passphrase", "type": "string", "editor": "textfield", "isSecret": true },
+    "hostKeySha256": { "title": "SFTP host key fingerprint", "type": "string", "editor": "textfield", "description": "Required for SFTP. The server's trusted SHA256 fingerprint, for example SHA256:... Obtain it from your server administrator." }
+  },
+  "required": ["protocol", "host", "username"]
+}

@@ -1,5 +1,7 @@
 [![MseeP.ai Security Assessment Badge](https://mseep.net/pr/alxspiker-mcp-server-ftp-badge.png)](https://mseep.ai/app/alxspiker-mcp-server-ftp)
 
+
+For the Apify-hosted MCP adapter, setup, security requirements, and pricing events, see [APIFY.md](APIFY.md).
 # MCP Server for FTP, FTPS, and SFTP Access
 
 [![smithery badge](https://smithery.ai/badge/alxspikers-team/mcp-server-ftp)](https://smithery.ai/servers/alxspikers-team/mcp-server-ftp)

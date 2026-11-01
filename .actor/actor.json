@@ -1,0 +1,11 @@
+{
+  "actorSpecification": 1,
+  "name": "ftp-mcp-server",
+  "title": "FTP and SFTP MCP Server",
+  "description": "Connect an MCP client to an FTP, FTPS or SFTP server.",
+  "version": "1.0",
+  "input": "./input_schema.json",
+  "dockerfile": "./Dockerfile",
+  "usesStandbyMode": true,
+  "webServerMcpPath": "/mcp"
+}

@@ -4,6 +4,7 @@
 import { createRequire } from "node:module";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { createHash } from "node:crypto";
 
 const require = createRequire(import.meta.url);
 const { FtpSrv, FileSystem } = require("ftp-srv");
@@ -57,6 +58,7 @@ export async function startSftp(root, { gate } = {}) {
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   return {
     protocol: "sftp",
+    fingerprint: "SHA256:" + createHash("sha256").update(utils.parseKey(hostKey).getPublicSSH()).digest("base64").replace(/=+$/, ""),
     port: server.address().port,
     close: () => new Promise((resolve) => server.close(() => resolve())),
   };

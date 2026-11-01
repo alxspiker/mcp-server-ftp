@@ -538,6 +538,7 @@ async function main() {
         password,
         passphrase,
         privateKeyPath: process.env.FTP_PRIVATE_KEY_PATH || "",
+        hostKeySha256: process.env.FTP_HOST_KEY_SHA256 || undefined,
       };
       ftpClient = new SftpClient(sftpConfig);
     } else {

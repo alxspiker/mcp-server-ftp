@@ -15,6 +15,7 @@ export interface SftpConfig {
   password: string;
   passphrase: string;     // decrypted passphrase for SSH private key; ignored when no key is found
   privateKeyPath: string; // path to SSH private key, or a 1Password reference (op://vault/item/field)
+  hostKeySha256?: string; // base64 SHA-256 of the SSH host key
 }
 
 function resolvePrivateKey(keyPath: string): Buffer | undefined {
@@ -95,6 +96,12 @@ export class SftpClient {
       port: this.config.port,
       username: this.config.user,
     };
+
+    if (this.config.hostKeySha256) {
+      const expected = this.config.hostKeySha256;
+      clientOptions.hostHash = "sha256";
+      clientOptions.hostVerifier = (hash: string) => Buffer.from(hash, "hex").toString("base64").replace(/=+$/, "") === expected.replace(/=+$/, "");
+    }
 
     if (privateKey) {
       clientOptions.privateKey = privateKey;
