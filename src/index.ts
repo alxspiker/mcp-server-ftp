@@ -45,7 +45,7 @@ let localRoots: string[] = [];
 // Create server instance
 const server = new McpServer({
   name: "mcp-server-ftp",
-  version: "1.3.0",
+  version: "1.4.0",
 });
 
 // The MCP SDK dispatches tool calls concurrently, but concurrent FTP operations
