@@ -1,11 +1,20 @@
 # Changelog
 
-## Unreleased
+## 1.4.0 — 2026-11-09
 
 ### Added
+- Optional `FTP_HOST_KEY_SHA256` pins the SFTP server host key to a SHA-256 fingerprint (base64; a leading `SHA256:` prefix is accepted). When it is unset, SFTP connections are not pinned, same as before. The MCPB manifest and the Cursor plugin expose the setting.
 - Cursor plugin manifest (`.cursor-plugin/plugin.json`) and `mcp.json`, exposing every `FTP_*` setting as a plugin variable.
-- The Apify Actor now runs a one-shot `backup`, `sync`, or `compare` job when it is not started in Standby (`APIFY_META_ORIGIN=STANDBY`). Console, API, and Schedule runs take that path. Standby still serves MCP at `/mcp` and adds `backup-directory`, `sync-directory`, and `compare-directories`. The npm/stdio server is unchanged.
+- Apify Actor (`.actor/`). Standby serves MCP at `/mcp` and adds `backup-directory`, `sync-directory`, and `compare-directories`. Any other run origin performs one `backup`, `sync`, or `compare` job and exits. npm/stdio tool names are unchanged. See [APIFY.md](APIFY.md).
 - Suggested pay-per-event names `automation-run` and `automation-file-transferred`. They are charged only after the work succeeds and are not live prices until they are set in Apify Console.
+
+### Changed
+- `@modelcontextprotocol/sdk` is now `^1.32.2` (was `^1.12.0`).
+- SFTP `list-directory` entries use `symlink` for symbolic links and `other` for anything that is not a regular file or directory. Those entries used to be reported as `file`. `fileCount` counts only regular files. FTP listings are unchanged.
+- `apify` is a devDependency. Installing `mcp-server-ftp` from npm, including `npx`, no longer installs it. The stdio entry point does not import it. The Apify Actor image installs `apify` itself and still runs `build/apify.js`.
+
+### Removed
+- Smithery badge, directory link, and `@smithery/cli` install instructions. Smithery shut down its hosted URLs, API, accounts, API keys, and CLI on October 31, 2026. `smithery.yaml` and the Smithery-generated root `Dockerfile` are removed. The Apify Actor build uses `.actor/Dockerfile`.
 
 ## 1.3.0 — 2026-10-15
 

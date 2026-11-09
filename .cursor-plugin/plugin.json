@@ -1,6 +1,6 @@
 {
   "name": "mcp-server-ftp",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Model Context Protocol server for FTP access",
   "author": {
     "name": "Alx Spiker"
@@ -78,6 +78,11 @@
         "type": "string",
         "title": "SFTP key passphrase",
         "description": "SFTP only: private-key passphrase; supports encrypted enc: values."
+      },
+      "FTP_HOST_KEY_SHA256": {
+        "type": "string",
+        "title": "SFTP host key SHA-256",
+        "description": "SFTP only: optional SHA-256 host-key fingerprint, as base64. A leading SHA256: prefix is accepted. Empty skips pinning."
       },
       "FTP_ENCRYPTION_KEY": {
         "type": "string",

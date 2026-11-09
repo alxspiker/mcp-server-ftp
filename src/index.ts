@@ -45,7 +45,7 @@ let localRoots: string[] = [];
 // Create server instance
 const server = new McpServer({
   name: "mcp-server-ftp",
-  version: "1.3.0",
+  version: "1.4.0",
 });
 
 // The MCP SDK dispatches tool calls concurrently, but concurrent FTP operations
@@ -538,7 +538,7 @@ async function main() {
         password,
         passphrase,
         privateKeyPath: process.env.FTP_PRIVATE_KEY_PATH || "",
-        hostKeySha256: process.env.FTP_HOST_KEY_SHA256 || undefined,
+        hostKeySha256: (process.env.FTP_HOST_KEY_SHA256 || "").replace(/^SHA256:/, "") || undefined,
       };
       ftpClient = new SftpClient(sftpConfig);
     } else {
