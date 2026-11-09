@@ -4,8 +4,6 @@
 Use the [hosted FTP MCP server on Apify](https://apify.com/theprogrammer/mcp-server-ftp) for remote access, or install the free local version below. See [APIFY.md](APIFY.md) for hosted setup and pricing details.
 # MCP Server for FTP, FTPS, and SFTP Access
 
-[![smithery badge](https://smithery.ai/badge/alxspikers-team/mcp-server-ftp)](https://smithery.ai/servers/alxspikers-team/mcp-server-ftp)
-
 This Model Context Protocol (MCP) server provides file-management tools for FTP, FTPS, and SFTP servers. It supports directory listing, binary-safe downloads/uploads, text edits, appends, renames/moves, directory creation, and deletion.
 
 ## Protocol support
@@ -25,6 +23,7 @@ This Model Context Protocol (MCP) server provides file-management tools for FTP,
 - Create and delete directories
 - FTP, FTPS, and SFTP support
 - SFTP password or SSH private-key authentication
+- Optional SFTP host-key pinning (`FTP_HOST_KEY_SHA256`)
 - Optional 1Password CLI private-key resolution
 - AES-256-GCM encrypted credential values
 - OS-keychain support for the encryption key
@@ -34,7 +33,6 @@ This Model Context Protocol (MCP) server provides file-management tools for FTP,
 - [Apify Store](https://apify.com/theprogrammer/mcp-server-ftp) — hosted MCP server with pay-per-event pricing
 - [GitHub releases](https://github.com/alxspiker/mcp-server-ftp/releases)
 - [npm](https://www.npmjs.com/package/mcp-server-ftp) (`mcp-server-ftp`)
-- [Smithery](https://smithery.ai/servers/alxspikers-team/mcp-server-ftp)
 - [Agensi](https://www.agensi.io/skills/ftp-ftps-sftp-file-manager)
 - [Glama](https://glama.ai/mcp/servers/alxspiker/mcp-server-ftp)
 - [MseeP.ai](https://mseep.ai/app/alxspiker-mcp-server-ftp)
@@ -64,14 +62,6 @@ The server is published as [`mcp-server-ftp`](https://www.npmjs.com/package/mcp-
     }
   }
 }
-```
-
-### Installing via Smithery (deprecated)
-
-> Smithery is shutting down its MCP proxy and connection management on October 31, 2026, and the Smithery CLI is deprecated. This install path will stop working then — install via [npm](#installing-via-npm) instead.
-
-```bash
-npx -y @smithery/cli install alxspikers-team/mcp-server-ftp --client claude
 ```
 
 ### Cursor plugin
@@ -170,6 +160,7 @@ For a trusted FTPS server with a self-signed certificate, add `"FTP_TLS_REJECT_U
 | `FTP_TLS_REJECT_UNAUTHORIZED` | FTPS only | Verify the FTPS certificate and hostname; `false` allows a trusted self-signed certificate but disables identity checks | `true` |
 | `FTP_PRIVATE_KEY_PATH` | SFTP only | SSH private-key path or `op://` 1Password secret reference | auto-detect |
 | `FTP_PASSPHRASE` | SFTP only | SSH private-key passphrase; supports encrypted `enc:` values | empty |
+| `FTP_HOST_KEY_SHA256` | SFTP only | Optional SHA-256 fingerprint of the server host key, as base64. A leading `SHA256:` prefix is accepted. When set, the connection is refused if the server presents a different key. | unset |
 | `FTP_ENCRYPTION_KEY` | encrypted credentials | 64-character hex AES-256 key. Prefer the OS keychain or a global environment variable for local installs. | disabled |
 | `FTP_LOCAL_ROOTS` | local file tools | Local directories `upload-local-file` may read from and `download-to-local` may write into, separated by `:` (macOS/Linux) or `;` (Windows). `~` is expanded. | disabled |
 
@@ -185,6 +176,8 @@ The server looks for a private key in this order:
 4. `~/.ssh/id_ecdsa`
 
 If no key is found, `FTP_PASSWORD` is used.
+
+`FTP_HOST_KEY_SHA256` is optional. Set it to the host key's SHA-256 fingerprint (base64, or the `SHA256:` form printed by `ssh-keygen -lf`). The client then connects only when the server presents that key. Leave it unset to keep the previous, unpinned behavior.
 
 ### Reading an SFTP key from 1Password
 
@@ -264,6 +257,8 @@ npm run encrypt-env -- <plaintext-value>
 | `download-to-local` | Download a remote file to a local path, streamed, without returning its contents (needs `FTP_LOCAL_ROOTS`) |
 
 Tool calls return machine-readable `structuredContent`, and all eleven tools advertise output schemas. Version 1.2.2 introduced a compatibility shim that ensures advertised schemas use the JSON Schema 2020-12 dialect required by current MCP clients.
+
+On SFTP, `list-directory` reports `symlink` for symbolic links and `other` for sockets, devices, and anything else that is not a regular file or directory. Those entries used to be reported as `file`. `fileCount` counts only regular files. FTP listings are unchanged.
 
 ## Transferring local files
 

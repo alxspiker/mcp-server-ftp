@@ -9,7 +9,7 @@ Standby is single-tenant: one run holds one customer's connection. Do not put it
 
 ## Standby MCP
 
-1. Create an Actor in Apify Console and point its source at this repository and branch. Build it. `.actor/actor.json` selects the Dockerfile and the `/mcp` path. Connecting GitHub does not by itself publish an Actor.
+1. Create an Actor in Apify Console and point its source at this repository and branch. Build it. `.actor/actor.json` selects `.actor/Dockerfile` and the `/mcp` path. That image installs the `apify` package for the Actor entry point; the published npm package does not depend on it. Connecting GitHub does not by itself publish an Actor.
 2. In Standby settings, enable Standby, select a **single-tenant** deployment, and enable **Validate and pass Actor input**. Leave Operation empty on MCP tasks. Do not lock settings that users need to override. This repository cannot enforce the platform's isolation setting; check it in Console.
 3. Create a task per connection. Set protocol, host, username, and credentials. Passwords, private keys, and passphrases are secret inputs. Use the task's own Standby MCP URL and append `/mcp` if it is not already there. Send `Authorization: Bearer <token>`. Prefer a scoped token. Never put a token in a public URL.
 4. Test with a disposable FTP account before sharing the Actor. A new GitHub commit needs a new build, and Standby must select that build or a tag that points at it.

@@ -2,7 +2,7 @@
   "manifest_version": "0.2",
   "name": "mcp-server-ftp",
   "display_name": "FTP Access Server",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "MCP server for FTP, FTPS, and SFTP access: list, download, upload (including local files by path), edit, append, rename, and delete files and directories on remote servers.",
   "long_description": "Interact with FTP, FTPS, and SFTP servers using natural language. Supports binary-safe file transfers, in-place text edits, appends, renames, directory management, FTPS/TLS, SFTP password or SSH key authentication, and AES-256-GCM encrypted credentials with OS keychain support for the encryption key.",
   "author": {
@@ -32,6 +32,7 @@
         "FTP_PROTOCOL": "${user_config.ftp_protocol}",
         "FTP_PRIVATE_KEY_PATH": "${user_config.ftp_private_key_path}",
         "FTP_PASSPHRASE": "${user_config.ftp_passphrase}",
+        "FTP_HOST_KEY_SHA256": "${user_config.ftp_host_key_sha256}",
         "FTP_ENCRYPTION_KEY": "${user_config.ftp_encryption_key}",
         "FTP_LOCAL_ROOTS": "${user_config.ftp_local_roots}"
       }
@@ -100,6 +101,13 @@
       "title": "SFTP Key Passphrase",
       "description": "Passphrase for the SFTP private key (supports enc: encrypted values)",
       "sensitive": true,
+      "default": "",
+      "required": false
+    },
+    "ftp_host_key_sha256": {
+      "type": "string",
+      "title": "SFTP Host Key SHA-256",
+      "description": "Optional SHA-256 fingerprint of the SFTP server host key, as base64. A leading SHA256: prefix is accepted. When set, the connection is refused if the server presents a different key. Leave empty to skip pinning.",
       "default": "",
       "required": false
     },

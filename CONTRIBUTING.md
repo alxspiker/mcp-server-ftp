@@ -61,9 +61,9 @@ npm view mcp-server-ftp version
 
 Do not publish from an unmerged feature branch unless the release is intentionally a prerelease.
 
-## Smithery (retired)
+## Distribution
 
-Smithery is shutting down its hosted URLs, API, accounts, API keys, and CLI/SDKs on October 31, 2026. The `.mcpb` bundle publish step to Smithery has been removed from the release process; npm is the primary distribution channel. Do not publish new versions to Smithery.
+npm is the distribution channel. Smithery shut down its hosted URLs, API, accounts, API keys, and CLI on October 31, 2026. There is no Smithery install or publish step. `smithery.yaml` and the Smithery Dockerfile are not part of this repository. The Apify Actor builds from `.actor/Dockerfile`.
 
 ## Release checklist
 
