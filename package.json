@@ -39,7 +39,7 @@
     "ftp-srv": "^4.6.3",
     "selfsigned": "^5.5.0",
     "ssh2": "^1.17.0",
-    "typescript": "^5.2.2"
+    "typescript": "^7.0.2"
   },
   "files": [
     "build",
