@@ -1,4 +1,4 @@
-FROM node:22-bookworm-slim
+FROM node:26-bookworm-slim
 WORKDIR /app
 COPY package.json tsconfig.json ./
 COPY src ./src
