@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.4.1 — 2026-11-20
+
+### Security
+- `basic-ftp` is now `^6.2.6` (was `^5.0.3`). Version 5 receives no fixes for these advisories, all of which this server can reach:
+  - [GHSA-c475-qrg2-pj4r](https://github.com/advisories/GHSA-c475-qrg2-pj4r) (high): a directory listing from a malicious server could make `list-directory` use excessive CPU.
+  - [GHSA-5pm8-86m8-9m6r](https://github.com/advisories/GHSA-5pm8-86m8-9m6r) (moderate): a `__proto__` fact in an MLSD listing made `list-directory` fail with an uncaught error.
+  - [GHSA-r4jh-29pc-gfqr](https://github.com/advisories/GHSA-r4jh-29pc-gfqr) (moderate): an FTP password containing a line break crashed the server process.
+  - The error for a rejected login no longer includes the password.
+- `zod` is now `^4.6.7` (was `^3.22.4`), which fixes [GHSA-mrhx-c7xc-m3w5](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5) (high): memory exhaustion while validating oversized collections. Version 3 receives no fix.
+
+### Changed
+- When an FTP server does not support `EPSV`, the data connection now always goes to the host of the control connection, and only the port from the `PASV` reply is used. Servers behind NAT that advertise a private address in `PASV` keep working; basic-ftp 6 would otherwise refuse that reply. Ignoring the advertised address also stops a server from directing the data connection to another machine.
+- Tool input schemas no longer advertise `additionalProperties: false`. Validation is unchanged: wrong types and missing fields are still rejected, and extra fields are still ignored. Validation error messages are worded differently.
+- The Apify Actor image uses Node.js 26 (was Node.js 22).
+- The project builds with TypeScript 7 (was TypeScript 5). The compiled output is identical.
+
 ## 1.4.0 — 2026-11-09
 
 ### Added
