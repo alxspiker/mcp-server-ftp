@@ -1,4 +1,7 @@
-import { Client } from "basic-ftp";
+import { Client, enterPassiveModeIPv6 } from "basic-ftp";
+import type { FTPContext, FTPResponse } from "basic-ftp";
+// basic-ftp exports these two only from its transfer module, not from the package root.
+import { connectForPassiveTransfer, parsePasvResponse } from "basic-ftp/dist/transfer.js";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
@@ -18,6 +21,29 @@ export interface FtpConfig {
 
 export type FileEncoding = "utf8" | "base64";
 
+// PASV fallback for servers without EPSV: use only the port from the reply and open the
+// data connection to the host the control connection already uses. Servers behind NAT
+// often advertise a private address in PASV, which basic-ftp 6 rejects by default, and
+// ignoring the advertised host also keeps a server from directing the data connection
+// to another machine.
+async function enterPassiveModeControlHost(ftp: FTPContext): Promise<FTPResponse> {
+  const res = await ftp.request("PASV");
+  const { port } = parsePasvResponse(res.message);
+  const controlHost = ftp.socket.remoteAddress;
+  if (controlHost === undefined) {
+    throw new Error("Control socket is disconnected, can't get remote address.");
+  }
+  await connectForPassiveTransfer(controlHost, port, ftp);
+  return res;
+}
+
+class ControlHostClient extends Client {
+  constructor() {
+    super();
+    this.prepareTransfer = this._enterFirstCompatibleMode([enterPassiveModeIPv6, enterPassiveModeControlHost]);
+  }
+}
+
 // Create FTP client wrapper
 export class FtpClient {
   private config: FtpConfig;
@@ -35,7 +61,7 @@ export class FtpClient {
 
   // Runs an operation on a fresh connection, guaranteeing disconnect even on error
   private async withConnection<T>(operation: (client: Client) => Promise<T>): Promise<T> {
-    const client = new Client();
+    const client = new ControlHostClient();
     client.ftp.verbose = false; // Set to true for debugging
     try {
       await client.access({
