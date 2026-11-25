@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- Optional `FTP_ROOT` prefixes every remote path with a fixed subtree (e.g. `/www`), sandboxing the server to that subtree. `..` cannot climb above it; local paths (`FTP_LOCAL_ROOTS`, `localPath`) are unaffected. Unset, empty, or `/` leaves remote paths unchanged, same as before. The MCPB manifest and the Cursor plugin expose the setting.
+
 ## 1.4.1 — 2026-11-20
 
 ### Security

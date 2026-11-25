@@ -27,6 +27,7 @@ This Model Context Protocol (MCP) server provides file-management tools for FTP,
 - Optional 1Password CLI private-key resolution
 - AES-256-GCM encrypted credential values
 - OS-keychain support for the encryption key
+- Optional remote-path sandbox (`FTP_ROOT`)
 
 ## Where to get it
 
@@ -156,6 +157,7 @@ For a trusted FTPS server with a self-signed certificate, add `"FTP_TLS_REJECT_U
 | `FTP_PROTOCOL` | all | `ftp` or `sftp` | `ftp` |
 | `FTP_USER` | all | Username; supports encrypted `enc:` values | `anonymous` |
 | `FTP_PASSWORD` | all | Password; supports encrypted `enc:` values | empty |
+| `FTP_ROOT` | all | Prefix applied to every remote path (e.g. `/www`); `..` cannot climb above it; local paths (`FTP_LOCAL_ROOTS`, `localPath`) are unaffected | unset |
 | `FTP_SECURE` | FTP/FTPS only | Enables TLS/FTPS for the FTP client | `false` |
 | `FTP_TLS_REJECT_UNAUTHORIZED` | FTPS only | Verify the FTPS certificate and hostname; `false` allows a trusted self-signed certificate but disables identity checks | `true` |
 | `FTP_PRIVATE_KEY_PATH` | SFTP only | SSH private-key path or `op://` 1Password secret reference | auto-detect |
