@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+- `FTP_HOST` and `FTP_USER` no longer default to `localhost` and `anonymous`. The server now exits at startup, naming every missing or empty setting, if `FTP_HOST`, `FTP_USER`, or (when no other SFTP auth method is available) `FTP_PASSWORD` is not set, instead of surfacing a misleading auth/connection error on the first tool call. Anonymous FTP access now requires setting `FTP_USER=anonymous` and a password explicitly. SFTP is unaffected when `FTP_PRIVATE_KEY_PATH` is set or a default SSH key (`~/.ssh/id_ed25519`, `id_rsa`, or `id_ecdsa`) exists. The MCPB manifest and Apify Actor connection validation were updated to match.
+
 ## 1.4.1 — 2026-11-20
 
 ### Security

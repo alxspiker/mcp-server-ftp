@@ -425,7 +425,7 @@ test("Standby exposes backup-directory and the npm server does not", async () =>
   const transport = new StdioClientTransport({
     command: process.execPath,
     args: ["build/index.js"],
-    env: { ...process.env, FTP_PROTOCOL: "ftp", FTP_HOST: "127.0.0.1", FTP_PORT: "21", FTP_USER: "anonymous", FTP_PASSWORD: "" },
+    env: { ...process.env, FTP_PROTOCOL: "ftp", FTP_HOST: "127.0.0.1", FTP_PORT: "21", FTP_USER: "anonymous", FTP_PASSWORD: "anonymous" },
     stderr: "pipe",
   });
   try {

@@ -3,7 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { FtpClient, FtpConfig } from "./ftp-client.js";
-import { SftpClient, SftpConfig } from "./sftp-client.js";
+import { SftpClient, SftpConfig, hasDefaultSshKey } from "./sftp-client.js";
 import { decrypt } from "./crypto.js";
 import { ConnectionType } from "./connection-type.js";
 import { loadEncryptionKey } from "./keychain.js";
@@ -519,9 +519,34 @@ async function main() {
   await loadEncryptionKey();
   try {
     const protocol = resolveProtocol(process.env.FTP_PROTOCOL);
-    const host = process.env.FTP_HOST || "localhost";
-    const user = decrypt(process.env.FTP_USER || "anonymous");
-    const password = decrypt(process.env.FTP_PASSWORD || "");
+    const host = process.env.FTP_HOST || "";
+    const userEnv = process.env.FTP_USER || "";
+    const passwordEnv = process.env.FTP_PASSWORD || "";
+    const privateKeyPath = process.env.FTP_PRIVATE_KEY_PATH || "";
+
+    // Fail fast on missing connection settings instead of falling back to
+    // defaults (localhost / anonymous) that would surface later as a
+    // misleading auth or connection error on the first tool call.
+    const missing: string[] = [];
+    if (!host.trim()) missing.push("FTP_HOST");
+    if (!userEnv.trim()) missing.push("FTP_USER");
+    // SFTP can authenticate with a key instead of a password: not required
+    // when FTP_PRIVATE_KEY_PATH is set, or when a default SSH key exists.
+    const passwordRequired =
+      protocol === ConnectionType.SFTP ? !privateKeyPath.trim() && !hasDefaultSshKey() : true;
+    if (passwordRequired && !passwordEnv.trim()) {
+      missing.push(
+        protocol === ConnectionType.SFTP
+          ? "FTP_PASSWORD (or FTP_PRIVATE_KEY_PATH, or a default SSH key in ~/.ssh)"
+          : "FTP_PASSWORD"
+      );
+    }
+    if (missing.length > 0) {
+      throw new Error(`Missing or empty required environment variable(s): ${missing.join(", ")}`);
+    }
+
+    const user = decrypt(userEnv);
+    const password = decrypt(passwordEnv);
     const rejectUnauthorized = resolveTlsRejectUnauthorized(process.env.FTP_TLS_REJECT_UNAUTHORIZED);
     if (!rejectUnauthorized && (protocol !== ConnectionType.FTP || !resolveSecure(process.env.FTP_SECURE))) {
       throw new Error("FTP_TLS_REJECT_UNAUTHORIZED=false requires FTP_PROTOCOL=ftp and FTP_SECURE=true.");
@@ -537,7 +562,7 @@ async function main() {
         user,
         password,
         passphrase,
-        privateKeyPath: process.env.FTP_PRIVATE_KEY_PATH || "",
+        privateKeyPath,
         hostKeySha256: (process.env.FTP_HOST_KEY_SHA256 || "").replace(/^SHA256:/, "") || undefined,
       };
       ftpClient = new SftpClient(sftpConfig);

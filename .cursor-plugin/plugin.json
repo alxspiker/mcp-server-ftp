@@ -42,12 +42,12 @@
       "FTP_USER": {
         "type": "string",
         "title": "Username",
-        "description": "Username; supports encrypted enc: values. Defaults to anonymous."
+        "description": "Username; supports encrypted enc: values."
       },
       "FTP_PASSWORD": {
         "type": "string",
         "title": "Password",
-        "description": "Password; supports encrypted enc: values."
+        "description": "Password; supports encrypted enc: values. Required unless using SFTP with FTP_PRIVATE_KEY_PATH or an auto-detected SSH key."
       },
       "FTP_SECURE": {
         "type": "string",
@@ -96,7 +96,8 @@
       }
     },
     "required": [
-      "FTP_HOST"
+      "FTP_HOST",
+      "FTP_USER"
     ]
   }
 }

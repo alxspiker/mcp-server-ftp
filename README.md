@@ -151,11 +151,11 @@ For a trusted FTPS server with a self-signed certificate, add `"FTP_TLS_REJECT_U
 
 | Environment variable | Applies to | Description | Default |
 |---|---|---|---|
-| `FTP_HOST` | all | Server hostname or IP address | `localhost` |
+| `FTP_HOST` | all | Server hostname or IP address | required |
 | `FTP_PORT` | all | Server port | `21` for FTP/FTPS, `22` for SFTP |
 | `FTP_PROTOCOL` | all | `ftp` or `sftp` | `ftp` |
-| `FTP_USER` | all | Username; supports encrypted `enc:` values | `anonymous` |
-| `FTP_PASSWORD` | all | Password; supports encrypted `enc:` values | empty |
+| `FTP_USER` | all | Username; supports encrypted `enc:` values | required |
+| `FTP_PASSWORD` | all | Password; supports encrypted `enc:` values | required, except SFTP with `FTP_PRIVATE_KEY_PATH` or an auto-detected SSH key |
 | `FTP_SECURE` | FTP/FTPS only | Enables TLS/FTPS for the FTP client | `false` |
 | `FTP_TLS_REJECT_UNAUTHORIZED` | FTPS only | Verify the FTPS certificate and hostname; `false` allows a trusted self-signed certificate but disables identity checks | `true` |
 | `FTP_PRIVATE_KEY_PATH` | SFTP only | SSH private-key path or `op://` 1Password secret reference | auto-detect |
@@ -175,7 +175,7 @@ The server looks for a private key in this order:
 3. `~/.ssh/id_rsa`
 4. `~/.ssh/id_ecdsa`
 
-If no key is found, `FTP_PASSWORD` is used.
+If no key is found, `FTP_PASSWORD` is required; the server exits at startup if it is also missing.
 
 `FTP_HOST_KEY_SHA256` is optional. Set it to the host key's SHA-256 fingerprint (base64, or the `SHA256:` form printed by `ssh-keygen -lf`). The client then connects only when the server presents that key. Leave it unset to keep the previous, unpinned behavior.
 
