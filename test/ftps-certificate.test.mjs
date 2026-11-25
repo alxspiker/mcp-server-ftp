@@ -77,6 +77,9 @@ test("rejects certificate bypass when FTPS is not enabled", () => {
     env: {
       ...process.env,
       FTP_PROTOCOL: "ftp",
+      FTP_HOST: "ftp.example.com",
+      FTP_USER: "someone",
+      FTP_PASSWORD: "secret",
       FTP_SECURE: "false",
       FTP_TLS_REJECT_UNAUTHORIZED: "false"
     },

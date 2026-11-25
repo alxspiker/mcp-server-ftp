@@ -95,6 +95,7 @@ export function validateInput(input: Input): void {
   if (input.protocol !== "sftp" && (input.privateKey || input.passphrase || input.hostKeySha256)) throw new Error("SSH settings require SFTP");
   if (input.protocol === "sftp" && (!input.hostKeySha256 || !/^(?:SHA256:)?[A-Za-z0-9+/]{43}=?$/.test(input.hostKeySha256))) throw new Error("SFTP requires the server's SHA256 host key fingerprint");
   if (input.protocol === "sftp" && !input.privateKey && !input.password) throw new Error("SFTP requires a password or private key");
+  if (input.protocol !== "sftp" && !input.password) throw new Error("FTP requires a password (use username \"anonymous\" with an explicit password for anonymous access)");
 }
 
 const events: Record<string, string> = {

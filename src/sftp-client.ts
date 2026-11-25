@@ -31,6 +31,11 @@ function resolvePrivateKey(keyPath: string): Buffer | undefined {
 
 const DEFAULT_KEY_PATHS = ["~/.ssh/id_ed25519", "~/.ssh/id_rsa", "~/.ssh/id_ecdsa"];
 
+/** True when one of the default SSH key paths exists, for startup validation that must mirror the auto-detect order above. */
+export function hasDefaultSshKey(): boolean {
+  return DEFAULT_KEY_PATHS.some((p) => resolvePrivateKey(p) !== undefined);
+}
+
 async function safeDisconnect(client: Ssh2SftpClient): Promise<void> {
   try { await client.end(); } catch { /* ignore disconnect errors */ }
 }

@@ -43,8 +43,7 @@
       "type": "string",
       "title": "Server Host",
       "description": "FTP/FTPS/SFTP server hostname or IP address",
-      "default": "localhost",
-      "required": false
+      "required": true
     },
     "ftp_port": {
       "type": "string",
@@ -57,13 +56,12 @@
       "type": "string",
       "title": "Username",
       "description": "FTP/FTPS/SFTP username (supports enc: encrypted values)",
-      "default": "anonymous",
-      "required": false
+      "required": true
     },
     "ftp_password": {
       "type": "string",
       "title": "Password",
-      "description": "FTP/FTPS/SFTP password (supports enc: encrypted values)",
+      "description": "FTP/FTPS/SFTP password (supports enc: encrypted values). Required unless using SFTP with FTP_PRIVATE_KEY_PATH or an auto-detected SSH key.",
       "sensitive": true,
       "default": "",
       "required": false
