@@ -27,6 +27,7 @@
         "FTP_PORT": "${user_config.ftp_port}",
         "FTP_USER": "${user_config.ftp_user}",
         "FTP_PASSWORD": "${user_config.ftp_password}",
+        "FTP_ROOT": "${user_config.ftp_root}",
         "FTP_SECURE": "${user_config.ftp_secure}",
         "FTP_TLS_REJECT_UNAUTHORIZED": "${user_config.ftp_tls_reject_unauthorized}",
         "FTP_PROTOCOL": "${user_config.ftp_protocol}",
@@ -123,6 +124,13 @@
       "type": "string",
       "title": "Local Transfer Folders",
       "description": "Optional local folders that upload-local-file may read from and download-to-local may write into, separated by : (macOS/Linux) or ; (Windows). Leave empty to disable local file transfer.",
+      "default": "",
+      "required": false
+    },
+    "ftp_root": {
+      "type": "string",
+      "title": "Remote Root",
+      "description": "Optional prefix applied to every remote path (e.g. /www), sandboxing the server to that subtree. .. cannot climb above it. Leave empty to use remote paths unchanged.",
       "default": "",
       "required": false
     }

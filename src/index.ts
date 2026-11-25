@@ -11,6 +11,7 @@ import * as fs from "fs";
 import { parseLocalRoots, resolveReadable, resolveWritable, openReadable, createTempFile, commitTemp, sha256Fd } from "./local-files.js";
 import * as path from "path";
 import { finished } from "stream/promises";
+import { parseFtpRoot, resolveRemotePath } from "./remote-root.js";
 
 function resolveSecure(raw: string | undefined): boolean {
   const v = raw?.trim().toLowerCase();
@@ -41,6 +42,8 @@ type AnyFtpClient = FtpClient | SftpClient;
 let ftpClient: AnyFtpClient;
 // Local directories that upload-local-file / download-to-local may use (FTP_LOCAL_ROOTS); empty disables them.
 let localRoots: string[] = [];
+// Optional remote-path prefix (FTP_ROOT); "" disables it and leaves remote paths unchanged.
+let ftpRoot: string = "";
 
 // Create server instance
 const server = new McpServer({
@@ -89,7 +92,7 @@ server.registerTool(
   },
   serialized(async ({ remotePath }) => {
     try {
-      const listing = await ftpClient.listDirectory(remotePath);
+      const listing = await ftpClient.listDirectory(resolveRemotePath(ftpRoot, remotePath));
 
       // Format the output
       const formatted = listing.map((item) =>
@@ -134,7 +137,7 @@ server.registerTool(
   },
   serialized(async ({ remotePath }) => {
     try {
-      const { content, encoding } = await ftpClient.downloadFile(remotePath);
+      const { content, encoding } = await ftpClient.downloadFile(resolveRemotePath(ftpRoot, remotePath));
 
       const header = encoding === "base64"
         ? `File content of ${remotePath} (binary, base64-encoded):`
@@ -171,7 +174,7 @@ server.registerTool(
   serialized(async ({ remotePath, content, encoding }) => {
     try {
       const enc = encoding ?? "utf8";
-      await ftpClient.uploadFile(remotePath, content, enc);
+      await ftpClient.uploadFile(resolveRemotePath(ftpRoot, remotePath), content, enc);
 
       return {
         content: [
@@ -210,7 +213,7 @@ server.registerTool(
       let remoteSize: number | null;
       try {
         sha256 = await sha256Fd(fd);
-        remoteSize = await ftpClient.uploadLocalStream(fs.createReadStream("", { fd, start: 0, autoClose: false }), remotePath);
+        remoteSize = await ftpClient.uploadLocalStream(fs.createReadStream("", { fd, start: 0, autoClose: false }), resolveRemotePath(ftpRoot, remotePath));
       } finally {
         fs.closeSync(fd);
       }
@@ -256,7 +259,7 @@ server.registerTool(
       let sha256: string;
       try {
         const out = fs.createWriteStream("", { fd: tmp.fd, autoClose: false });
-        await ftpClient.downloadToStream(remotePath, out);
+        await ftpClient.downloadToStream(resolveRemotePath(ftpRoot, remotePath), out);
         if (!out.writableFinished) await finished(out);
         fs.fsyncSync(tmp.fd);
         bytes = fs.fstatSync(tmp.fd).size;
@@ -299,7 +302,7 @@ server.registerTool(
   },
   serialized(async ({ remotePath }) => {
     try {
-      await ftpClient.createDirectory(remotePath);
+      await ftpClient.createDirectory(resolveRemotePath(ftpRoot, remotePath));
 
       return {
         content: [
@@ -329,7 +332,7 @@ server.registerTool(
   },
   serialized(async ({ remotePath }) => {
     try {
-      await ftpClient.deleteFile(remotePath);
+      await ftpClient.deleteFile(resolveRemotePath(ftpRoot, remotePath));
 
       return {
         content: [
@@ -359,7 +362,7 @@ server.registerTool(
   },
   serialized(async ({ remotePath }) => {
     try {
-      await ftpClient.deleteDirectory(remotePath);
+      await ftpClient.deleteDirectory(resolveRemotePath(ftpRoot, remotePath));
 
       return {
         content: [
@@ -390,7 +393,7 @@ server.registerTool(
   },
   serialized(async ({ fromPath, toPath }) => {
     try {
-      await ftpClient.rename(fromPath, toPath);
+      await ftpClient.rename(resolveRemotePath(ftpRoot, fromPath), resolveRemotePath(ftpRoot, toPath));
 
       return {
         content: [
@@ -430,7 +433,7 @@ server.registerTool(
         return errorResult("Error editing file", new Error("oldText and newText are identical; nothing to change"));
       }
 
-      const { content, encoding } = await ftpClient.downloadFile(remotePath);
+      const { content, encoding } = await ftpClient.downloadFile(resolveRemotePath(ftpRoot, remotePath));
       if (encoding === "base64") {
         return errorResult(
           "Error editing file",
@@ -453,7 +456,7 @@ server.registerTool(
       }
 
       const updated = replaceAll ? content.split(oldText).join(newText) : content.replace(oldText, newText);
-      await ftpClient.uploadFile(remotePath, updated, "utf8");
+      await ftpClient.uploadFile(resolveRemotePath(ftpRoot, remotePath), updated, "utf8");
       const fileSize = Buffer.byteLength(updated, "utf8");
 
       return {
@@ -487,7 +490,7 @@ server.registerTool(
   serialized(async ({ remotePath, content, encoding }) => {
     try {
       const enc = encoding ?? "utf8";
-      await ftpClient.appendFile(remotePath, content, enc);
+      await ftpClient.appendFile(resolveRemotePath(ftpRoot, remotePath), content, enc);
       const appendedBytes = Buffer.byteLength(content, enc);
 
       return {
@@ -528,6 +531,7 @@ async function main() {
     }
 
     localRoots = parseLocalRoots(process.env.FTP_LOCAL_ROOTS);
+    ftpRoot = parseFtpRoot(process.env.FTP_ROOT);
 
     if (protocol === ConnectionType.SFTP) {
       const passphrase = decrypt(process.env.FTP_PASSPHRASE || "");

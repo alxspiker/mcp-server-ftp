@@ -199,4 +199,10 @@ function serveSftp(sftp, root, gate) {
     if (!p) return fail(reqid);
     fs.rmdir(p, (err) => (err ? fail(reqid, err) : sftp.status(reqid, STATUS_CODE.OK)));
   });
+  sftp.on("RENAME", (reqid, oldPath, newPath) => {
+    const from = local(oldPath);
+    const to = local(newPath);
+    if (!from || !to) return fail(reqid);
+    fs.rename(from, to, (err) => (err ? fail(reqid, err) : sftp.status(reqid, STATUS_CODE.OK)));
+  });
 }

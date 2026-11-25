@@ -18,7 +18,8 @@
         "FTP_PASSPHRASE": "${FTP_PASSPHRASE}",
         "FTP_HOST_KEY_SHA256": "${FTP_HOST_KEY_SHA256}",
         "FTP_ENCRYPTION_KEY": "${FTP_ENCRYPTION_KEY}",
-        "FTP_LOCAL_ROOTS": "${FTP_LOCAL_ROOTS}"
+        "FTP_LOCAL_ROOTS": "${FTP_LOCAL_ROOTS}",
+        "FTP_ROOT": "${FTP_ROOT}"
       }
     }
   }
